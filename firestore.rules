@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // This studio has no public registration: any authenticated Firebase user is an administrator.
+    function isAdmin() { return request.auth != null; }
+    match /homepageSections/{sectionId} { allow read: if resource.data.published == true || isAdmin(); allow write: if isAdmin(); }
+    match /gallery/{document=**} { allow read: if resource.data.hidden != true || isAdmin(); allow write: if isAdmin(); }
+    match /pricingPlans/{planId} { allow read: if resource.data.visible == true || isAdmin(); allow write: if isAdmin(); }
+    match /testimonials/{testimonialId} { allow read: if resource.data.visible == true || isAdmin(); allow write: if isAdmin(); }
+    match /{document=**} { allow read, write: if isAdmin(); }
+    match /bookings/{bookingId} { allow create: if true; allow read, update, delete: if isAdmin(); }
+    match /messages/{messageId} { allow create: if true; allow read, update, delete: if isAdmin(); }
+  }
+}
