@@ -84,17 +84,33 @@ function Hero({ section }: { section: HomepageSection }) {
 function Gallery({ section }: { section: HomepageSection }) {
   const data = content<{ eyebrow: string; title: string; images: GalleryImage[] }>(section);
   const [liveGallery, setLiveGallery] = useState<PublicEntry[]>([]);
+  const [cloudinaryImages, setCloudinaryImages] = useState<GalleryImage[]>([]);
 
   useEffect(() => {
-    return subscribeToPublicEntries("gallery", (entries) => setLiveGallery(entries));
+    const unsub = subscribeToPublicEntries("gallery", (entries) => setLiveGallery(entries));
+    fetch("/api/media/gallery")
+      .then((res) => (res.ok ? res.json() : { images: [] }))
+      .then((res: { images?: Array<{ id: string; src: string; title: string }> }) => {
+        if (Array.isArray(res.images) && res.images.length > 0) {
+          setCloudinaryImages(res.images.map((img) => ({ id: img.id, src: img.src, alt: "Gallery image", title: img.title })));
+        }
+      })
+      .catch(() => null);
+
+    return unsub;
   }, []);
 
   const sectionImages = (data.images ?? []).filter((img) => Boolean(img && img.src));
+  const liveItems = liveGallery.map((item) => ({ id: item.id, src: String(item.src ?? ""), alt: String(item.alt ?? "Gallery image"), title: String(item.title ?? ""), category: String(item.category ?? "") }));
+
+  const knownUrls = new Set([...liveItems.map((x) => x.src), ...sectionImages.map((x) => x.src)]);
+  const extraCloudinary = cloudinaryImages.filter((x) => Boolean(x.src) && !knownUrls.has(x.src));
+
   const combinedImages: GalleryImage[] = [
-    ...liveGallery.map((item) => ({ id: item.id, src: String(item.src ?? ""), alt: String(item.alt ?? "Gallery image"), title: String(item.title ?? ""), category: String(item.category ?? "") })),
+    ...liveItems,
+    ...extraCloudinary,
     ...sectionImages,
-  ].filter((img) => Boolean(img.src)).slice(0, 6);
-  // BUG-20 fixed: removed dead isDataUrl helper
+  ].filter((img) => Boolean(img.src)).slice(0, 9);
 
   return (
     <section className="bg-[#f0eee9] px-5 py-24 text-[#10100f] md:px-10 md:py-32">

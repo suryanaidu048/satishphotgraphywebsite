@@ -32,14 +32,31 @@ const fallbackPortfolio = [
 
 function GalleryGrid() {
   const [items, setItems] = useState<PublicEntry[]>([]);
+  const [cloudinaryImages, setCloudinaryImages] = useState<Array<{ id: string; src: string; title: string }>>([]);
 
   useEffect(() => {
-    return subscribeToPublicEntries("gallery", (entries) => setItems(entries));
+    const unsub = subscribeToPublicEntries("gallery", (entries) => setItems(entries));
+    fetch("/api/media/gallery")
+      .then((res) => (res.ok ? res.json() : { images: [] }))
+      .then((data: { images?: Array<{ id: string; src: string; title: string }> }) => {
+        if (Array.isArray(data.images) && data.images.length > 0) {
+          setCloudinaryImages(data.images);
+        }
+      })
+      .catch(() => null);
+
+    return unsub;
   }, []);
 
-  const displayItems = items.length
-    ? items.map((x) => ({ id: x.id, src: String(x.src ?? ""), title: String(x.title || x.category || "Selected work") })).filter((x) => Boolean(x.src))
-    : fallbackPortfolio;
+  const firestoreItems = items
+    .map((x) => ({ id: x.id, src: String(x.src ?? ""), title: String(x.title || x.category || "Selected work") }))
+    .filter((x) => Boolean(x.src));
+
+  const knownUrls = new Set(firestoreItems.map((x) => x.src));
+  const extraCloudinary = cloudinaryImages.filter((x) => Boolean(x.src) && !knownUrls.has(x.src));
+  const combined = [...firestoreItems, ...extraCloudinary];
+
+  const displayItems = combined.length ? combined : fallbackPortfolio;
   // BUG-20 fixed: removed dead isDataUrl helper — base64 fallback no longer exists
 
   return (
