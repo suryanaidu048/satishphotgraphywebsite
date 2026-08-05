@@ -24,11 +24,11 @@ export function GalleryPickerModal({ isOpen, onClose, onSelect }: Props) {
   const displayableImages = galleryItems.filter((item) => Boolean(item.src));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="gallery-picker-title">
       <div className="flex max-h-[85vh] w-full max-w-3xl flex-col border border-white/15 bg-[#161614] text-[#f0eee9] shadow-2xl">
         <header className="flex items-center justify-between border-b border-white/10 p-4">
           <div>
-            <h3 className="text-base font-semibold">Select from uploaded gallery</h3>
+            <h3 id="gallery-picker-title" className="text-base font-semibold">Select from uploaded gallery</h3>
             <p className="text-xs text-white/40">Choose an image from your gallery collection to assign to this section.</p>
           </div>
           <button onClick={onClose} className="p-1 text-white/50 hover:text-white" aria-label="Close modal">
