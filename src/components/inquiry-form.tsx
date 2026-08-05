@@ -15,27 +15,13 @@ export function InquiryForm({ kind = "messages" }: { kind?: "messages" | "bookin
     const values = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
 
     try {
-      const response = await fetch("/api/inquiries", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ kind, ...values }),
-      });
-
-      if (!response.ok) {
-        // Fall back to direct Firestore/localStorage service
-        await createInquiry(kind, values);
-      }
-
+      // Firebase Hosting serves this app statically. Persist directly to Firestore
+      // instead of depending on a Next.js API route that would not exist at runtime.
+      await createInquiry(kind, values);
       setState("sent");
       form.reset();
     } catch {
-      try {
-        await createInquiry(kind, values);
-        setState("sent");
-        form.reset();
-      } catch {
-        setState("error");
-      }
+      setState("error");
     }
   }
   const booking = kind === "bookings";

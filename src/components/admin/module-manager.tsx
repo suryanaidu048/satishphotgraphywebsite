@@ -1,16 +1,16 @@
 "use client";
 
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from "firebase/firestore";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { CloudinaryUpload } from "@/components/admin/cloudinary-upload";
 import { Button } from "@/components/ui/button";
-import { db } from "@/lib/firebase";
+import { database } from "@/lib/firebase";
+import { createRealtimeItem, removeRealtimeItem, subscribeToCollection, updateRealtimeItem } from "@/services/realtime";
 import { persistPublicEntries, readStoredPublicEntries } from "@/lib/content-sync";
 
 const modules: Record<string, { collection: string; title: string; helper: string; readOnly?: boolean }> = {
-  gallery: { collection: "gallery", title: "Gallery manager", helper: "Upload images to Cloudinary and save their details to Firestore." },
+  gallery: { collection: "gallery", title: "Gallery manager", helper: "Upload images to Cloudinary and save their details to Realtime Database." },
   services: { collection: "services", title: "Services", helper: "Create the services shown across the website." },
   pricing: { collection: "pricingPlans", title: "Pricing", helper: "Manage bespoke collections and visible pricing plans." },
   testimonials: { collection: "testimonials", title: "Testimonials", helper: "Add the notes and names shown on the public site." },
@@ -22,7 +22,7 @@ const modules: Record<string, { collection: string; title: string; helper: strin
 
 type Item = { id: string; [key: string]: unknown };
 
-export function ModuleManager({ module }: { module: string; user: User }) {
+export function ModuleManager({ module }: { module: string; user: { email?: string | null } | User }) {
   const config = modules[module];
   const [items, setItems] = useState<Item[]>([]);
   const [title, setTitle] = useState("");
@@ -44,8 +44,8 @@ export function ModuleManager({ module }: { module: string; user: User }) {
   useEffect(() => {
     if (!config) return;
 
-    if (!db) {
-      // Offline / no Firebase — load from localStorage for supported collections.
+    if (!database) {
+      // No browser fallback: Realtime Database is the single source of truth.
       if (config.collection === "pricingPlans" || config.collection === "testimonials" || config.collection === "gallery") {
         const stored = readStoredPublicEntries(config.collection as "pricingPlans" | "testimonials" | "gallery", []);
         setItems(stored.map((item) => ({ ...item, id: item.id })));
@@ -57,10 +57,10 @@ export function ModuleManager({ module }: { module: string; user: User }) {
 
     // BUG-21 fixed: added error callback to surface Firestore failures instead of silently swallowing them.
     // BUG-03 fixed: error is now shown in the notice banner so the admin knows what went wrong.
-    return onSnapshot(
-      query(collection(db, config.collection), orderBy("createdAt", "desc")),
-      (snapshot) => setItems(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))),
-      (error) => setNotice(`Could not load items: ${error.message}. Check Firestore rules / indexes.`),
+    return subscribeToCollection(
+      config.collection,
+      (entries) => setItems(entries.sort((a, b) => Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0))),
+      (error) => setNotice(`Could not load items: ${error.message}. Check Realtime Database rules.`),
     );
   }, [config]);
 
@@ -85,8 +85,8 @@ export function ModuleManager({ module }: { module: string; user: User }) {
         : { title: title.trim(), body: body.trim(), visible };
 
     try {
-      if (!db && (isPricing || isTestimonials)) {
-        // BUG-09 covered (save path): persist to localStorage when Firestore is unavailable.
+      if (!database && (isPricing || isTestimonials)) {
+        // Realtime Database is unavailable; no browser copy is created.
         const collName = config.collection as "pricingPlans" | "testimonials";
         const stored = readStoredPublicEntries(collName, []);
         const nextItems = editingId
@@ -95,11 +95,11 @@ export function ModuleManager({ module }: { module: string; user: User }) {
         persistPublicEntries(collName, nextItems);
         setItems(nextItems.map((item) => ({ ...item, id: item.id })));
         setNotice("Saved locally — visible on the public page.");
-      } else if (db) {
+      } else if (database) {
         if (editingId) {
-          await updateDoc(doc(db, config.collection, editingId), { ...payload, updatedAt: serverTimestamp() });
+          await updateRealtimeItem(config.collection, editingId, payload);
         } else {
-          await addDoc(collection(db, config.collection), { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+          await createRealtimeItem(config.collection, payload);
         }
         setNotice("Saved successfully.");
       }
@@ -112,8 +112,8 @@ export function ModuleManager({ module }: { module: string; user: User }) {
   async function remove(id: string) {
     if (!confirm("Delete this item?")) return;
 
-    // BUG-09 fixed: handle delete when Firestore is unavailable — persist removal to localStorage.
-    if (!db) {
+    // Never delete from a browser-only fallback.
+    if (!database) {
       const handleLocalDelete = (collName: "pricingPlans" | "testimonials" | "gallery") => {
         const stored = readStoredPublicEntries(collName, []);
         const next = stored.filter((item) => item.id !== id);
@@ -129,7 +129,7 @@ export function ModuleManager({ module }: { module: string; user: User }) {
     }
 
     try {
-      await deleteDoc(doc(db, config.collection, id));
+      await removeRealtimeItem(config.collection, id);
       setNotice("Item deleted.");
     } catch {
       setNotice("Couldn't delete this item.");
@@ -152,8 +152,8 @@ export function ModuleManager({ module }: { module: string; user: User }) {
     if (!editingGallery) return;
     const { id, alt, hidden } = editingGallery;
     try {
-      if (db) {
-        await updateDoc(doc(db, "gallery", id), { alt, hidden });
+      if (database) {
+        await updateRealtimeItem("gallery", id, { alt, hidden });
       } else {
         const stored = readStoredPublicEntries("gallery", []);
         const next = stored.map((item) => item.id === id ? { ...item, alt, hidden } : item);
@@ -168,20 +168,19 @@ export function ModuleManager({ module }: { module: string; user: User }) {
   }
 
   async function uploaded(asset: { url: string; publicId: string; width: number; height: number }) {
-    if (db) {
+    if (database) {
       try {
-        const docRef = await addDoc(collection(db, "gallery"), {
+        const id = await createRealtimeItem("gallery", {
           src: asset.url,
           cloudinaryPublicId: asset.publicId,
           width: asset.width,
           height: asset.height,
           alt: "",
           hidden: false,
-          createdAt: serverTimestamp(),
         });
         // Optimistically prepend with the real Firestore id (avoids duplicate on next snapshot).
-        const newItem = { id: docRef.id, src: asset.url, cloudinaryPublicId: asset.publicId, width: asset.width, height: asset.height, alt: "", hidden: false };
-        setItems((current) => [newItem, ...current.filter((i) => i.id !== docRef.id)]);
+        const newItem = { id, src: asset.url, cloudinaryPublicId: asset.publicId, width: asset.width, height: asset.height, alt: "", hidden: false };
+        setItems((current) => [newItem, ...current.filter((i) => i.id !== id)]);
         setNotice("Image uploaded and saved to gallery.");
       } catch {
         setNotice("Image uploaded, but Firestore metadata could not be saved.");

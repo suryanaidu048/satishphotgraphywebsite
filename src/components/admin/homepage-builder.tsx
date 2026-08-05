@@ -1,15 +1,14 @@
 "use client";
 
-import { collection, deleteDoc, doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { Eye, ImagePlus, Plus, Trash2, PencilLine } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { GalleryPickerModal } from "@/components/admin/gallery-picker-modal";
 import { CloudinaryUpload } from "@/components/admin/cloudinary-upload";
 import { Button } from "@/components/ui/button";
-import { db } from "@/lib/firebase";
-import { persistPublicEntries, readStoredPublicEntries } from "@/lib/content-sync";
-import { subscribeToHomepageSections, updateHomepageSection } from "@/services/homepage";
+import { database } from "@/lib/firebase";
+import { createRealtimeItem, removeRealtimeItem, updateRealtimeItem } from "@/services/realtime";
+import { seedHomepageSections, subscribeToHomepageSections, updateHomepageSection } from "@/services/homepage";
 import { subscribeToPublicEntries, type PublicEntry } from "@/services/content";
 import type { GalleryImage, HomepageSection } from "@/types/content";
 
@@ -54,6 +53,16 @@ export function HomepageBuilder() {
   const aboutContent = (aboutSection?.content as AboutContent | undefined) ?? {};
   const heroImages = heroContent.images ?? [];
   const galleryImages = galleryContent.images ?? [];
+
+  async function seedHomepage() {
+    if (!database) { setNotice("Realtime Database is not configured."); return; }
+    try {
+      await seedHomepageSections();
+      setNotice("Initial homepage content has been saved to Realtime Database.");
+    } catch {
+      setNotice("Could not seed homepage content. Confirm this account has administrator access.");
+    }
+  }
 
   function getSectionImages(section: HomepageSection | undefined): GalleryImage[] {
     if (!section) return [];
@@ -138,34 +147,15 @@ export function HomepageBuilder() {
       visible: pricingDraft.visible,
     };
 
-    const stored = readStoredPublicEntries("pricingPlans", []);
-    let nextId = editingPricingId ?? `pricing-${Date.now()}`;
-    let savedToFirestore = false;
-
-    if (db) {
-      try {
-        if (editingPricingId) {
-          await setDoc(doc(db, "pricingPlans", editingPricingId), { ...payload, updatedAt: serverTimestamp() }, { merge: true });
-        } else {
-          const docRef = doc(collection(db, "pricingPlans"));
-          nextId = docRef.id;
-          await setDoc(docRef, { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
-        }
-        savedToFirestore = true;
-      } catch (error) {
-        console.warn("Firestore save for pricing failed, keeping local copy:", error);
-      }
-    }
-
-    const nextItems = editingPricingId
-      ? stored.map((item) => (item.id === editingPricingId ? { ...item, ...payload, id: item.id } : item))
-      : [...stored, { id: nextId, ...payload, order: stored.length, visible: pricingDraft.visible }];
-
-    persistPublicEntries("pricingPlans", nextItems);
+    if (!database) { setNotice("Realtime Database is not configured."); return; }
+    try {
+      if (editingPricingId) await updateRealtimeItem("pricingPlans", editingPricingId, payload);
+      else await createRealtimeItem("pricingPlans", payload);
+    } catch { setNotice("Could not save pricing. Check Realtime Database rules."); return; }
 
     setPricingDraft({ title: "", price: "", body: "", features: "", visible: true });
     setEditingPricingId(null);
-    setNotice(savedToFirestore ? "Pricing package saved to Firestore & public site." : "Pricing package saved locally & public site.");
+    setNotice("Pricing package saved to Realtime Database.");
   }
 
   async function saveTestimonialEntry() {
@@ -178,60 +168,23 @@ export function HomepageBuilder() {
       visible: testimonialDraft.visible,
     };
 
-    const stored = readStoredPublicEntries("testimonials", []);
-    let nextId = editingTestimonialId ?? `testimonial-${Date.now()}`;
-    let savedToFirestore = false;
-
-    if (db) {
-      try {
-        if (editingTestimonialId) {
-          await setDoc(doc(db, "testimonials", editingTestimonialId), { ...payload, updatedAt: serverTimestamp() }, { merge: true });
-        } else {
-          const docRef = doc(collection(db, "testimonials"));
-          nextId = docRef.id;
-          await setDoc(docRef, { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
-        }
-        savedToFirestore = true;
-      } catch (error) {
-        console.warn("Firestore save for testimonial failed, keeping local copy:", error);
-      }
-    }
-
-    const nextItems = editingTestimonialId
-      ? stored.map((item) => (item.id === editingTestimonialId ? { ...item, ...payload, id: item.id } : item))
-      : [...stored, { id: nextId, ...payload, order: stored.length, visible: testimonialDraft.visible }];
-
-    persistPublicEntries("testimonials", nextItems);
+    if (!database) { setNotice("Realtime Database is not configured."); return; }
+    try {
+      if (editingTestimonialId) await updateRealtimeItem("testimonials", editingTestimonialId, payload);
+      else await createRealtimeItem("testimonials", payload);
+    } catch { setNotice("Could not save testimonial. Check Realtime Database rules."); return; }
 
     setTestimonialDraft({ author: "", role: "", body: "", visible: true });
     setEditingTestimonialId(null);
-    setNotice(savedToFirestore ? "Testimonials saved to Firestore & public site." : "Testimonials saved locally & public site.");
+    setNotice("Testimonial saved to Realtime Database.");
   }
 
   async function removePricingItem(id: string) {
-    const nextItems = pricingItems.filter((item) => item.id !== id);
-    persistPublicEntries("pricingPlans", nextItems);
-    if (db) {
-      try {
-        await deleteDoc(doc(db, "pricingPlans", id));
-      } catch (error) {
-        console.warn("Firestore delete failed:", error);
-      }
-    }
-    setNotice("Pricing package removed.");
+    try { await removeRealtimeItem("pricingPlans", id); setNotice("Pricing package removed."); } catch { setNotice("Could not remove pricing package."); }
   }
 
   async function removeTestimonialItem(id: string) {
-    const nextItems = testimonialItems.filter((item) => item.id !== id);
-    persistPublicEntries("testimonials", nextItems);
-    if (db) {
-      try {
-        await deleteDoc(doc(db, "testimonials", id));
-      } catch (error) {
-        console.warn("Firestore delete failed:", error);
-      }
-    }
-    setNotice("Testimonial removed.");
+    try { await removeRealtimeItem("testimonials", id); setNotice("Testimonial removed."); } catch { setNotice("Could not remove testimonial."); }
   }
 
   function startEditingPricing(item: PublicEntry) {
@@ -250,6 +203,7 @@ export function HomepageBuilder() {
         <p className="label text-[#c7a66b]">Dynamic content studio</p>
         <h1 className="mt-2 text-3xl font-semibold">Homepage control center</h1>
         <p className="mt-2 text-sm text-white/45">Upload images into the existing hero and gallery placeholders, and manage packages and testimonials from one live admin screen.</p>
+        {!items.length && sectionsLoaded && <Button className="mt-4" onClick={seedHomepage}>Create initial homepage content</Button>}
       </header>
 
       {notice && <p className="mb-6 border border-[#c7a66b]/25 bg-[#c7a66b]/10 p-3 text-sm text-[#e6cf9f]">{notice}</p>}

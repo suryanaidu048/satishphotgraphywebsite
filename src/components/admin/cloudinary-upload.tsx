@@ -3,86 +3,33 @@
 import { ChangeEvent, useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/lib/firebase";
 
-type Props = { folder?: string; onUploaded?: (asset: { url: string; publicId: string; width: number; height: number }) => void };
+type Asset = { url: string; publicId: string; width: number; height: number };
+type Props = { folder?: string; onUploaded?: (asset: Asset) => void };
+const MAX_BYTES = 10 * 1024 * 1024;
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
 export function CloudinaryUpload({ folder = "gallery", onUploaded }: Props) {
   const [state, setState] = useState<"idle" | "uploading" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   async function upload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]; event.target.value = "";
     if (!file) return;
-
-    // Cloudinary free tier limit is 10MB
-    const MAX_SIZE_MB = 10;
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setErrorMsg(`File size exceeds ${MAX_SIZE_MB}MB limit.`);
-      setState("error");
-      event.target.value = "";
-      return;
-    }
-
-    setErrorMsg("");
-    setState("uploading");
-
+    if (!cloudName || !uploadPreset) { setErrorMsg("Cloudinary upload preset is not configured."); setState("error"); return; }
+    if (!ALLOWED_TYPES.has(file.type) || file.size > MAX_BYTES) { setErrorMsg("Upload a JPG, PNG, WebP, or AVIF image up to 10 MB."); setState("error"); return; }
+    setState("uploading"); setErrorMsg("");
     try {
-      const headers: Record<string, string> = { "content-type": "application/json" };
-      if (auth?.currentUser) {
-        const token = await auth.currentUser.getIdToken();
-        headers.authorization = `Bearer ${token}`;
-      }
-
-      const signed = await fetch("/api/media/signature", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ folder }),
-      });
-
-      if (!signed.ok) {
-        console.error("Cloudinary signature request failed", await signed.text());
-        setState("error");
-        return;
-      }
-
-      const { timestamp, signature, apiKey, cloudName } = await signed.json();
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", folder);
-      formData.append("timestamp", String(timestamp));
-      formData.append("signature", signature);
-      formData.append("api_key", apiKey);
-
+      formData.append("file", file); formData.append("upload_preset", uploadPreset); formData.append("folder", folder);
       const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: "POST", body: formData });
-      if (response.ok) {
-        const asset = await response.json();
-        onUploaded?.({ url: asset.secure_url, publicId: asset.public_id, width: asset.width, height: asset.height });
-        setState("idle");
-        event.target.value = "";
-        return;
-      }
-
-      const errorBody = await response.text();
-      console.error("Cloudinary upload failed", response.status, errorBody);
-      setState("error");
-    } catch {
-      setState("error");
-    } finally {
-      event.target.value = "";
-    }
+      if (!response.ok) throw new Error("Cloudinary rejected the upload.");
+      const asset = await response.json();
+      onUploaded?.({ url: asset.secure_url, publicId: asset.public_id, width: asset.width, height: asset.height });
+      setState("idle");
+    } catch (error) { console.error("Cloudinary upload failed", error); setErrorMsg("Upload failed. Check the Cloudinary preset settings."); setState("error"); }
   }
-
-  return (
-    <label>
-      <input className="sr-only" type="file" accept="image/*" onChange={upload} disabled={state === "uploading"} />
-      <Button asChild variant="outline" size="sm">
-        <span>
-          <Upload size={14} />
-          {state === "uploading" ? "Uploading…" : "Upload image"}
-        </span>
-      </Button>
-      {state === "error" && <span className="ml-3 text-xs text-[#e7a29b]">{errorMsg || "Upload unavailable. Please try again."}</span>}
-    </label>
-  );
+  return <label><input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={upload} disabled={state === "uploading"} /><Button asChild variant="outline" size="sm"><span><Upload size={14} />{state === "uploading" ? "Uploading…" : "Upload image"}</span></Button>{state === "error" && <span className="ml-3 text-xs text-[#e7a29b]">{errorMsg}</span>}</label>;
 }

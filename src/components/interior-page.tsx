@@ -32,19 +32,9 @@ const fallbackPortfolio = [
 
 function GalleryGrid() {
   const [items, setItems] = useState<PublicEntry[]>([]);
-  const [cloudinaryImages, setCloudinaryImages] = useState<Array<{ id: string; src: string; title: string }>>([]);
 
   useEffect(() => {
     const unsub = subscribeToPublicEntries("gallery", (entries) => setItems(entries));
-    fetch("/api/media/gallery")
-      .then((res) => (res.ok ? res.json() : { images: [] }))
-      .then((data: { images?: Array<{ id: string; src: string; title: string }> }) => {
-        if (Array.isArray(data.images) && data.images.length > 0) {
-          setCloudinaryImages(data.images);
-        }
-      })
-      .catch(() => null);
-
     return unsub;
   }, []);
 
@@ -52,9 +42,7 @@ function GalleryGrid() {
     .map((x) => ({ id: x.id, src: String(x.src ?? ""), title: String(x.title || x.category || "Selected work") }))
     .filter((x) => Boolean(x.src));
 
-  const knownUrls = new Set(firestoreItems.map((x) => x.src));
-  const extraCloudinary = cloudinaryImages.filter((x) => Boolean(x.src) && !knownUrls.has(x.src));
-  const combined = [...firestoreItems, ...extraCloudinary];
+  const combined = firestoreItems;
 
   const displayItems = combined.length ? combined : fallbackPortfolio;
   // BUG-20 fixed: removed dead isDataUrl helper — base64 fallback no longer exists
@@ -73,8 +61,7 @@ function GalleryGrid() {
   );
 }
 
-// BUG-12 fixed: Pricing section now subscribes to Firestore/localStorage data
-// instead of rendering hardcoded plan names.
+// Pricing is sourced from the central Realtime Database.
 function DynamicPricingSection() {
   const [plans, setPlans] = useState<PublicEntry[]>([]);
   useEffect(() => subscribeToPublicEntries("pricingPlans", setPlans), []);
@@ -119,8 +106,7 @@ function DynamicPricingSection() {
   );
 }
 
-// BUG-13 fixed: Testimonials section now subscribes to Firestore/localStorage data
-// instead of rendering three hardcoded quote strings.
+// Testimonials are sourced from the central Realtime Database.
 function DynamicTestimonialsSection() {
   const [quotes, setQuotes] = useState<PublicEntry[]>([]);
   useEffect(() => subscribeToPublicEntries("testimonials", setQuotes), []);
@@ -202,10 +188,10 @@ export function InteriorPage({ slug }: { slug: string }) {
           </>
         )}
 
-        {/* BUG-12 fixed: dynamic pricing from Firestore/localStorage */}
+        {/* Dynamic pricing from Realtime Database */}
         {isPricing && <DynamicPricingSection />}
 
-        {/* BUG-13 fixed: dynamic testimonials from Firestore/localStorage */}
+        {/* Dynamic testimonials from Realtime Database */}
         {slug === "testimonials" && <DynamicTestimonialsSection />}
 
         {/* Awards */}

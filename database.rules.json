@@ -1,0 +1,21 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "homepageSections": { ".read": true, ".write": "auth != null && auth.token.admin === true" },
+    "gallery": { ".read": true, ".write": "auth != null && auth.token.admin === true" },
+    "pricingPlans": { ".read": true, ".write": "auth != null && auth.token.admin === true" },
+    "testimonials": { ".read": true, ".write": "auth != null && auth.token.admin === true" },
+    "services": { ".read": true, ".write": "auth != null && auth.token.admin === true" },
+    "websiteSettings": { ".read": "auth != null && auth.token.admin === true", ".write": "auth != null && auth.token.admin === true" },
+    "analytics": { ".read": "auth != null && auth.token.admin === true", ".write": "auth != null && auth.token.admin === true" },
+    "bookings": {
+      ".read": "auth != null && auth.token.admin === true",
+      "$id": { ".write": "(auth != null && auth.token.admin === true) || (!data.exists() && newData.child('name').isString() && newData.child('name').val().length <= 120 && newData.child('email').isString() && newData.child('email').val().length <= 254 && newData.child('message').isString() && newData.child('message').val().length > 0 && newData.child('message').val().length <= 4000 && newData.child('status').val() === 'new')" }
+    },
+    "messages": {
+      ".read": "auth != null && auth.token.admin === true",
+      "$id": { ".write": "(auth != null && auth.token.admin === true) || (!data.exists() && newData.child('name').isString() && newData.child('name').val().length <= 120 && newData.child('email').isString() && newData.child('email').val().length <= 254 && newData.child('message').isString() && newData.child('message').val().length > 0 && newData.child('message').val().length <= 4000 && newData.child('status').val() === 'new')" }
+    }
+  }
+}

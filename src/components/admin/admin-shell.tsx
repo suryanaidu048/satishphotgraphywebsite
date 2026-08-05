@@ -20,13 +20,14 @@ const navigation = [
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-export function AdminShell({ user, children }: { user: User; children: React.ReactNode }) {
+export function AdminShell({ user, children }: { user: { email?: string | null } | User; children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   async function logout() {
-    if (auth) await signOut(auth);
+    if (auth) await signOut(auth).catch(() => null);
+    localStorage.removeItem("satish_admin_session");
     router.replace("/admin/login");
   }
 

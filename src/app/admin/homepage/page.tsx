@@ -1,4 +1,17 @@
 "use client";
 
-import AdminPage from "../page";
-export default AdminPage;
+import { AdminGate } from "@/components/admin/admin-gate";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { HomepageBuilder } from "@/components/admin/homepage-builder";
+
+export default function AdminHomepagePage() {
+  return (
+    <AdminGate>
+      {(user) => (
+        <AdminShell user={user}>
+          <HomepageBuilder />
+        </AdminShell>
+      )}
+    </AdminGate>
+  );
+}

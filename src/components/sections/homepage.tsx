@@ -5,8 +5,6 @@ import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { demoSections } from "@/lib/demo-content";
-import { readStoredHomepageSections } from "@/lib/content-sync";
 import { subscribeToHomepageSections } from "@/services/homepage";
 import type { GalleryImage, HomepageSection } from "@/types/content";
 import { SiteHeader } from "@/components/site-header";
@@ -21,7 +19,7 @@ function Hero({ section }: { section: HomepageSection }) {
   const heroImages = (data.images ?? []).filter((img) => Boolean(img && img.src)).slice(0, 3);
   const primaryImage = heroImages[0];
   const secondaryImages = heroImages.slice(1, 3);
-  // BUG-20 fixed: removed dead isDataUrl helper — base64 fallback no longer exists in cloudinary-upload.tsx
+  // The public site only renders media stored in Firestore-backed content.
 
   return (
     <section className="relative min-h-screen overflow-hidden px-5 pb-10 pt-28 md:px-10 md:pt-32">
@@ -84,31 +82,17 @@ function Hero({ section }: { section: HomepageSection }) {
 function Gallery({ section }: { section: HomepageSection }) {
   const data = content<{ eyebrow: string; title: string; images: GalleryImage[] }>(section);
   const [liveGallery, setLiveGallery] = useState<PublicEntry[]>([]);
-  const [cloudinaryImages, setCloudinaryImages] = useState<GalleryImage[]>([]);
 
   useEffect(() => {
     const unsub = subscribeToPublicEntries("gallery", (entries) => setLiveGallery(entries));
-    fetch("/api/media/gallery")
-      .then((res) => (res.ok ? res.json() : { images: [] }))
-      .then((res: { images?: Array<{ id: string; src: string; title: string }> }) => {
-        if (Array.isArray(res.images) && res.images.length > 0) {
-          setCloudinaryImages(res.images.map((img) => ({ id: img.id, src: img.src, alt: "Gallery image", title: img.title })));
-        }
-      })
-      .catch(() => null);
-
     return unsub;
   }, []);
 
   const sectionImages = (data.images ?? []).filter((img) => Boolean(img && img.src));
   const liveItems = liveGallery.map((item) => ({ id: item.id, src: String(item.src ?? ""), alt: String(item.alt ?? "Gallery image"), title: String(item.title ?? ""), category: String(item.category ?? "") }));
 
-  const knownUrls = new Set([...liveItems.map((x) => x.src), ...sectionImages.map((x) => x.src)]);
-  const extraCloudinary = cloudinaryImages.filter((x) => Boolean(x.src) && !knownUrls.has(x.src));
-
   const combinedImages: GalleryImage[] = [
     ...liveItems,
-    ...extraCloudinary,
     ...sectionImages,
   ].filter((img) => Boolean(img.src)).slice(0, 9);
 
@@ -280,8 +264,8 @@ function Booking({ section }: { section: HomepageSection }) {
 }
 
 export function Homepage() {
-  const [sections, setSections] = useState<HomepageSection[]>(() => readStoredHomepageSections(demoSections));
-  useEffect(() => subscribeToHomepageSections((next) => setSections(next.length ? next : readStoredHomepageSections(demoSections))), []);
+  const [sections, setSections] = useState<HomepageSection[]>([]);
+  useEffect(() => subscribeToHomepageSections(setSections), []);
 
   return (
     <>
