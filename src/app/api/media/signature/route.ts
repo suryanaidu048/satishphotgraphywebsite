@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createUploadSignature } from "@/lib/cloudinary";
 import { isAdminRequest } from "@/lib/firebase-admin";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-static";
 
 export async function POST(request: Request) {
   try {

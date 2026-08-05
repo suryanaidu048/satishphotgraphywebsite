@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-static";
 
 export async function POST(request: Request) {
   try {
