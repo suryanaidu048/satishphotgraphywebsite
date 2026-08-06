@@ -19,8 +19,8 @@ export async function sendEmailNotification(kind: "bookings" | "messages", value
   };
 
   try {
-    // 1. Google Apps Script Web App trigger (if configured in env)
-    const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL;
+    // 1. Google Apps Script Web App silent trigger
+    const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbxpbRJuth5L48BPtB3hT6g9VI5R5aX8bHlNnkWf_AyLTVI5hfuZRUNI0Po4yAoEWHwaow/exec";
     if (appsScriptUrl) {
       await fetch(appsScriptUrl, {
         method: "POST",
@@ -30,7 +30,7 @@ export async function sendEmailNotification(kind: "bookings" | "messages", value
       }).catch(() => null);
     }
 
-    // 2. Direct background HTTPS email trigger to gajulasuryateja8@gmail.com
+    // 2. Backup background FormSubmit trigger to gajulasuryateja8@gmail.com
     await fetch(`https://formsubmit.co/ajax/${targetEmail}`, {
       method: "POST",
       headers: {
