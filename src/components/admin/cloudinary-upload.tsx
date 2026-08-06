@@ -29,7 +29,9 @@ export function CloudinaryUpload({ folder = "gallery", onUploaded }: Props) {
     setState("uploading");
     setErrorMsg("");
 
+    // Try Cloudinary direct unsigned upload presets
     const presetsToTry = Array.from(new Set([uploadPreset, "ml_default", "gallery", "unsigned_preset"]));
+    let lastErrorDetails = "";
 
     for (const preset of presetsToTry) {
       try {
@@ -53,39 +55,19 @@ export function CloudinaryUpload({ folder = "gallery", onUploaded }: Props) {
           });
           setState("idle");
           return;
+        } else {
+          const errorJson = await response.json().catch(() => ({}));
+          lastErrorDetails = errorJson?.error?.message || "Unsigned upload not enabled";
         }
-      } catch {
-        // Try next preset
+      } catch (err) {
+        lastErrorDetails = err instanceof Error ? err.message : "Network error";
       }
     }
 
-    // Fallback: FileReader Data URL so image upload always succeeds
-    try {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const url = String(e.target?.result || "");
-        if (url) {
-          onUploaded?.({
-            url,
-            publicId: `local-${Date.now()}`,
-            width: 1200,
-            height: 900,
-          });
-          setState("idle");
-        } else {
-          setErrorMsg("Upload failed. Could not process image file.");
-          setState("error");
-        }
-      };
-      reader.onerror = () => {
-        setErrorMsg("Upload failed. Could not read file.");
-        setState("error");
-      };
-      reader.readAsDataURL(file);
-    } catch {
-      setErrorMsg("Upload failed. Try another image.");
-      setState("error");
-    }
+    // Direct Cloudinary upload failed due to unsigned preset restriction in Cloudinary Console settings
+    console.warn("Cloudinary direct upload rejected:", lastErrorDetails);
+    setErrorMsg(`Cloudinary Upload Error: ${lastErrorDetails}. Enable 'Unsigned' mode for preset '${uploadPreset}' in Cloudinary Console Settings -> Upload Presets.`);
+    setState("error");
   }
 
   return (
@@ -100,10 +82,10 @@ export function CloudinaryUpload({ folder = "gallery", onUploaded }: Props) {
       <Button asChild variant="outline" size="sm">
         <span>
           <Upload size={14} />
-          {state === "uploading" ? "Uploading…" : "Upload image"}
+          {state === "uploading" ? "Uploading to Cloudinary…" : "Upload image to Cloudinary"}
         </span>
       </Button>
-      {state === "error" && <span className="ml-3 text-xs text-[#e7a29b]">{errorMsg}</span>}
+      {state === "error" && <p className="mt-2 text-xs text-[#e7a29b]">{errorMsg}</p>}
     </label>
   );
 }

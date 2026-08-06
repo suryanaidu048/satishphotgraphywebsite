@@ -44,22 +44,34 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
   useEffect(() => {
     if (!config) return;
 
-    if (!database) {
-      // No browser fallback: Realtime Database is the single source of truth.
+    const loadLocal = (): Item[] => {
       if (config.collection === "pricingPlans" || config.collection === "testimonials" || config.collection === "gallery") {
-        const stored = readStoredPublicEntries(config.collection as "pricingPlans" | "testimonials" | "gallery", []);
-        setItems(stored.map((item) => ({ ...item, id: item.id })));
-      } else {
-        setItems([]);
+        return readStoredPublicEntries(config.collection as "pricingPlans" | "testimonials" | "gallery", []).map((item) => ({ ...item, id: item.id }));
       }
+      return [];
+    };
+
+    if (!database) {
+      setItems(loadLocal());
       return;
     }
 
-    // BUG-21 fixed: added error callback to surface Firestore failures instead of silently swallowing them.
-    // BUG-03 fixed: error is now shown in the notice banner so the admin knows what went wrong.
     return subscribeToCollection(
       config.collection,
-      (entries) => setItems(entries.sort((a, b) => Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0))),
+      (entries) => {
+        const local = loadLocal();
+        const map = new Map<string, Item>();
+        entries.forEach((e) => {
+          const key = e.id || String(e.src ?? "");
+          if (key) map.set(key, e);
+        });
+        local.forEach((l) => {
+          const key = l.id || String(l.src ?? "");
+          if (key && !map.has(key)) map.set(key, l);
+        });
+        const merged = Array.from(map.values()).sort((a, b) => Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0));
+        setItems(merged);
+      },
       (error) => setNotice(`Could not load items: ${error.message}. Check Realtime Database rules.`),
     );
   }, [config]);
@@ -308,6 +320,8 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">
                   {String(item.title || item.author || item.name || item.email || (item.src ? "Gallery image" : "Untitled"))}
+                  {typeof item.email === "string" && item.name ? ` (${item.email})` : ""}
+                  {typeof item.phone === "string" && item.phone ? ` · Ph: ${item.phone}` : ""}
                 </p>
                 {isPricing ? (
                   <p className="mt-1 text-sm text-white/45">
