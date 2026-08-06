@@ -7,23 +7,41 @@ export async function sendEmailNotification(kind: "bookings" | "messages", value
     ? `New Booking Inquiry from ${values.name || "Website Guest"}`
     : `New Contact Message from ${values.name || "Website Guest"}`;
 
+  const payload = {
+    _subject: subject,
+    _template: "table",
+    _captcha: "false",
+    "Client Name": values.name || "N/A",
+    "Email Address": values.email || "N/A",
+    "Mobile Number": values.phone || "N/A",
+    "Event Date": values.date || "N/A",
+    "Session Type": values.eventType || "N/A",
+    "Message Details": values.message || "N/A",
+  };
+
   try {
+    // Primary dispatch: FormSubmit AJAX direct email API
+    await fetch(`https://formsubmit.co/ajax/${targetEmail}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }).catch(() => null);
+
+    // Backup dispatch: Web3Forms API
     const formData = new FormData();
-    formData.append("access_key", "8b23c91a-7e12-421d-b63d-df7e74d11532");
+    formData.append("access_key", "09633e4f-6f29-45e7-9bd0-f408ce8a3064");
     formData.append("subject", subject);
-    formData.append("from_name", "Satish Photography Website");
-    formData.append("to", targetEmail);
     formData.append("email", values.email || "");
     formData.append("name", values.name || "");
     formData.append("message", `
-New inquiry received from website:
-
-• Name: ${values.name || "N/A"}
-• Email: ${values.email || "N/A"}
-• Mobile: ${values.phone || "N/A"}
-${values.date ? `• Date: ${values.date}\n` : ""}${values.eventType ? `• Event Type: ${values.eventType}\n` : ""}
-• Message:
-${values.message || "N/A"}
+Name: ${values.name || "N/A"}
+Email: ${values.email || "N/A"}
+Mobile: ${values.phone || "N/A"}
+${values.date ? `Event Date: ${values.date}\n` : ""}${values.eventType ? `Session Type: ${values.eventType}\n` : ""}
+Message: ${values.message || "N/A"}
     `.trim());
 
     await fetch("https://api.web3forms.com/submit", {
@@ -31,7 +49,7 @@ ${values.message || "N/A"}
       body: formData,
     }).catch(() => null);
   } catch (err) {
-    console.error("Email dispatch notification failed", err);
+    console.error("Email notification dispatch error:", err);
   }
 }
 
@@ -41,6 +59,6 @@ export async function createInquiry(kind: "bookings" | "messages", values: Recor
     await set(target, { ...values, status: "new", createdAt: Date.now() });
   }
 
-  // Send email to owner
+  // Send email notification to gajulasuryateja8@gmail.com
   await sendEmailNotification(kind, values);
 }

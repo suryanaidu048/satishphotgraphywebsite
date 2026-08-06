@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Calendar, Mail, Pencil, Phone, Plus, Tag, Trash2, User as UserIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { CloudinaryUpload } from "@/components/admin/cloudinary-upload";
@@ -9,15 +9,58 @@ import { database } from "@/lib/firebase";
 import { createRealtimeItem, removeRealtimeItem, subscribeToCollection, updateRealtimeItem } from "@/services/realtime";
 import { persistPublicEntries, readStoredPublicEntries } from "@/lib/content-sync";
 
-const modules: Record<string, { collection: string; title: string; helper: string; readOnly?: boolean }> = {
-  gallery: { collection: "gallery", title: "Gallery manager", helper: "Upload images to Cloudinary and save their details to Realtime Database." },
-  services: { collection: "services", title: "Services", helper: "Create the services shown across the website." },
-  pricing: { collection: "pricingPlans", title: "Pricing", helper: "Manage bespoke collections and visible pricing plans." },
-  testimonials: { collection: "testimonials", title: "Testimonials", helper: "Add the notes and names shown on the public site." },
-  bookings: { collection: "bookings", title: "Bookings", helper: "New booking requests from the website.", readOnly: true },
-  messages: { collection: "messages", title: "Messages", helper: "Contact messages received from the website.", readOnly: true },
-  analytics: { collection: "analytics", title: "Analytics", helper: "Connect your preferred analytics collection to view reported figures.", readOnly: true },
-  settings: { collection: "websiteSettings", title: "Settings", helper: "Store site-wide settings in Firestore." },
+const modules: Record<string, { collection: string; title: string; helper: string; destination: string; readOnly?: boolean }> = {
+  gallery: {
+    collection: "gallery",
+    title: "Gallery Manager",
+    helper: "Upload and manage high-resolution photography work.",
+    destination: "Stored in Cloudinary & Realtime Database. Appears immediately on the public /gallery page and Homepage gallery carousel.",
+  },
+  services: {
+    collection: "services",
+    title: "Services & Offerings",
+    helper: "Manage photography services offered to clients.",
+    destination: "Stored in Realtime Database. Appears immediately on the /services page and Homepage services list.",
+  },
+  pricing: {
+    collection: "pricingPlans",
+    title: "Pricing & Collections",
+    helper: "Manage photography collections and pricing packages.",
+    destination: "Stored in Realtime Database. Appears immediately on the /pricing page and /services package section.",
+  },
+  testimonials: {
+    collection: "testimonials",
+    title: "Client Testimonials",
+    helper: "Manage client reviews and testimonials.",
+    destination: "Stored in Realtime Database. Appears immediately on the /testimonials page and Homepage quotes slider.",
+  },
+  bookings: {
+    collection: "bookings",
+    title: "Booking Inquiries",
+    helper: "New reservation requests submitted by website visitors.",
+    destination: "Received from public /booking form. Saved in Realtime Database & emailed directly to gajulasuryateja8@gmail.com.",
+    readOnly: true,
+  },
+  messages: {
+    collection: "messages",
+    title: "Contact Messages",
+    helper: "Inquiries and notes sent through the website contact form.",
+    destination: "Received from public /contact form. Saved in Realtime Database & emailed directly to gajulasuryateja8@gmail.com.",
+    readOnly: true,
+  },
+  analytics: {
+    collection: "analytics",
+    title: "Analytics Overview",
+    helper: "Track website engagement and visitor traffic.",
+    destination: "Internal studio reports.",
+    readOnly: true,
+  },
+  settings: {
+    collection: "websiteSettings",
+    title: "Website Settings",
+    helper: "Manage global website branding and studio contact details.",
+    destination: "Stored in Realtime Database. Updates global header, footer, and contact info across all pages.",
+  },
 };
 
 type Item = { id: string; [key: string]: unknown };
@@ -33,13 +76,14 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
   const [role, setRole] = useState("");
   const [visible, setVisible] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  // BUG-10 fixed: dedicated gallery item edit state (alt text + hidden flag)
   const [editingGallery, setEditingGallery] = useState<{ id: string; alt: string; hidden: boolean } | null>(null);
   const [notice, setNotice] = useState("");
 
   const isPricing = module === "pricing";
   const isTestimonials = module === "testimonials";
   const isGallery = module === "gallery";
+  const isBookings = module === "bookings";
+  const isMessages = module === "messages";
 
   useEffect(() => {
     if (!config) return;
@@ -84,7 +128,6 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
   }
 
   async function saveItem() {
-    // BUG-19 fixed: show a visible notice instead of silently returning on missing title.
     if (!title.trim() && !isPricing && !isTestimonials) {
       setNotice("A title is required before adding an item.");
       return;
@@ -98,7 +141,6 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
 
     try {
       if (!database && (isPricing || isTestimonials)) {
-        // Realtime Database is unavailable; no browser copy is created.
         const collName = config.collection as "pricingPlans" | "testimonials";
         const stored = readStoredPublicEntries(collName, []);
         const nextItems = editingId
@@ -117,14 +159,13 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
       }
       resetForm();
     } catch {
-      setNotice("Couldn't save. Confirm this account has admin Firestore permissions.");
+      setNotice("Couldn't save. Confirm this account has admin database permissions.");
     }
   }
 
   async function remove(id: string) {
     if (!confirm("Delete this item?")) return;
 
-    // Never delete from a browser-only fallback.
     if (!database) {
       const handleLocalDelete = (collName: "pricingPlans" | "testimonials" | "gallery") => {
         const stored = readStoredPublicEntries(collName, []);
@@ -136,7 +177,7 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
       if (isGallery) handleLocalDelete("gallery");
       else if (isPricing) handleLocalDelete("pricingPlans");
       else if (isTestimonials) handleLocalDelete("testimonials");
-      else setNotice("Cannot delete: Firestore is not configured.");
+      else setNotice("Cannot delete: Database is not configured.");
       return;
     }
 
@@ -159,7 +200,6 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
     setVisible(item.visible !== false);
   }
 
-  // BUG-10 fixed: save gallery item alt text and hidden flag.
   async function saveGalleryItem() {
     if (!editingGallery) return;
     const { id, alt, hidden } = editingGallery;
@@ -190,15 +230,13 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
           alt: "",
           hidden: false,
         });
-        // Optimistically prepend with the real Firestore id (avoids duplicate on next snapshot).
         const newItem = { id, src: asset.url, cloudinaryPublicId: asset.publicId, width: asset.width, height: asset.height, alt: "", hidden: false };
         setItems((current) => [newItem, ...current.filter((i) => i.id !== id)]);
         setNotice("Image uploaded and saved to gallery.");
       } catch {
-        setNotice("Image uploaded, but Firestore metadata could not be saved.");
+        setNotice("Image uploaded, but metadata could not be saved.");
       }
     } else {
-      // BUG-15 fixed: assign order so items sort deterministically (0 = newest, push older items down).
       const stored = readStoredPublicEntries("gallery", []);
       const newItem = {
         id: `gallery-${Date.now()}`,
@@ -219,89 +257,131 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
 
   return (
     <div className="p-5 pt-20 md:p-8 lg:pt-8">
-      <header className="border-b border-white/10 pb-5">
-        <p className="label text-[#c7a66b]">Content studio</p>
-        <h1 className="mt-2 text-3xl font-semibold">{config.title}</h1>
-        <p className="mt-2 text-sm text-white/45">{config.helper}</p>
+      {/* Header with clear Data Destination Banner */}
+      <header className="border-b border-white/10 pb-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="label text-[#c7a66b]">Content Studio</p>
+            <h1 className="mt-1 text-3xl font-semibold">{config.title}</h1>
+            <p className="mt-1 text-sm text-white/50">{config.helper}</p>
+          </div>
+          <div className="rounded border border-[#c7a66b]/30 bg-[#c7a66b]/10 p-3.5 text-xs text-[#c7a66b] md:max-w-md">
+            <span className="font-semibold uppercase tracking-wider text-[#c7a66b]">📍 Data Destination:</span>
+            <p className="mt-1 leading-5 text-white/90">{config.destination}</p>
+          </div>
+        </div>
       </header>
 
       {notice && (
-        <p className="mt-5 border border-[#e7a29b]/30 p-3 text-sm text-[#e7a29b]">
-          {notice}
-          <button onClick={() => setNotice("")} className="ml-3 underline opacity-60 hover:opacity-100">Dismiss</button>
+        <p className="mt-5 flex items-center justify-between border border-[#e7a29b]/30 bg-[#e7a29b]/10 p-3.5 text-sm text-[#e7a29b]">
+          <span>{notice}</span>
+          <button onClick={() => setNotice("")} className="underline opacity-70 hover:opacity-100">Dismiss</button>
         </p>
       )}
 
       {/* Gallery upload */}
       {isGallery && (
-        <section className="mt-6 border border-white/10 bg-[#161614] p-5">
-          <CloudinaryUpload folder="gallery" onUploaded={uploaded} />
-          <p className="mt-3 text-xs leading-5 text-white/40">
-            Upload an image here and it will be stored for gallery use on the public site.
-          </p>
+        <section className="mt-6 border border-white/10 bg-[#161614] p-6">
+          <h2 className="text-base font-medium text-[#c7a66b]">Upload New Photo</h2>
+          <p className="mt-1 text-xs text-white/50">Photos uploaded here are stored in Cloudinary and immediately published to your website gallery.</p>
+          <div className="mt-4">
+            <CloudinaryUpload folder="gallery" onUploaded={uploaded} />
+          </div>
         </section>
       )}
 
-      {/* BUG-10 fixed: Gallery item edit panel — allows updating alt text and visibility */}
+      {/* Gallery item edit panel */}
       {isGallery && editingGallery && (
         <section className="mt-4 max-w-xl border border-[#c7a66b]/30 bg-[#161614] p-5">
-          <p className="label text-[#c7a66b]">Edit gallery image</p>
+          <p className="label text-[#c7a66b]">Edit Gallery Image</p>
           <div className="mt-4 space-y-3">
-            <input
-              value={editingGallery.alt}
-              onChange={(e) => setEditingGallery({ ...editingGallery, alt: e.target.value })}
-              placeholder="Alt text — describe the image for accessibility"
-              className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]"
-            />
-            <label className="flex items-center gap-2 text-sm text-white/55">
+            <div>
+              <label className="block text-xs text-white/60 mb-1">Alt Text (Accessibility Description)</label>
+              <input
+                value={editingGallery.alt}
+                onChange={(e) => setEditingGallery({ ...editingGallery, alt: e.target.value })}
+                placeholder="Describe the photo (e.g., Sunset wedding ceremony in Jaipur)"
+                className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-white/70">
               <input
                 type="checkbox"
                 checked={editingGallery.hidden}
                 onChange={(e) => setEditingGallery({ ...editingGallery, hidden: e.target.checked })}
               />
-              Hide from public gallery
+              Hide from public website gallery
             </label>
           </div>
           <div className="mt-4 flex gap-2">
-            <Button onClick={saveGalleryItem}><Plus size={15} />Save changes</Button>
+            <Button onClick={saveGalleryItem}><Plus size={15} />Save Changes</Button>
             <Button onClick={() => setEditingGallery(null)} variant="outline">Cancel</Button>
           </div>
         </section>
       )}
 
-      {/* Standard add / edit form for non-gallery, non-readonly modules */}
+      {/* Structured Form for Services, Pricing, Testimonials */}
       {!config.readOnly && !isGallery && (
-        <section className="mt-6 max-w-2xl border border-white/10 bg-[#161614] p-5">
-          <p className="label text-[#c7a66b]">{editingId ? "Edit item" : "Add item"}</p>
+        <section className="mt-6 max-w-2xl border border-white/10 bg-[#161614] p-6">
+          <h2 className="label text-[#c7a66b]">{editingId ? "Edit Item" : "Add New Entry"}</h2>
+          <p className="mt-1 text-xs text-white/40">Data entered here updates your live website in real time.</p>
+          
           {isPricing ? (
-            <div className="mt-4 space-y-3">
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Package name" className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
-              <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
-              <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Description" rows={3} className="w-full resize-none border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
-              <input value={features} onChange={(e) => setFeatures(e.target.value)} placeholder="Features (comma separated)" className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
-              <label className="flex items-center gap-2 text-sm text-white/55">
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1">Package Title</label>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Signature Wedding Collection" className="w-full border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1">Price / Investment</label>
+                <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. ₹1,50,000 or Starting from ₹75,000" className="w-full border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1">Short Description</label>
+                <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Describe what is included in this package..." rows={3} className="w-full resize-none border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1">Key Features (Comma separated)</label>
+                <input value={features} onChange={(e) => setFeatures(e.target.value)} placeholder="Full day coverage, High-res gallery, Fine art album" className="w-full border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-white/70">
                 <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />
-                Show on public site
+                Publish on website
               </label>
             </div>
           ) : isTestimonials ? (
-            <div className="mt-4 space-y-3">
-              <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Author" className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
-              <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Role / location" className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
-              <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Testimonial" rows={3} className="w-full resize-none border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
-              <label className="flex items-center gap-2 text-sm text-white/55">
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1">Client Name / Author</label>
+                <input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="e.g. Priya & Rahul" className="w-full border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1">Role / Event / Location</label>
+                <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Wedding at Udaipur" className="w-full border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1">Testimonial Quote</label>
+                <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Enter the client's review..." rows={4} className="w-full resize-none border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-white/70">
                 <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />
-                Show on public site
+                Publish on website
               </label>
             </div>
           ) : (
-            <div className="mt-4 space-y-3">
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
-              <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Short description" rows={3} className="w-full resize-none border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1">Service Title</label>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (e.g. Pre-wedding Stories)" className="w-full border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1">Service Details</label>
+                <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Short summary of this service..." rows={3} className="w-full resize-none border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+              </div>
             </div>
           )}
-          <div className="mt-4 flex gap-2">
-            <Button onClick={saveItem}><Plus size={15} />{editingId ? "Save changes" : "Add item"}</Button>
+          <div className="mt-6 flex gap-3">
+            <Button onClick={saveItem}><Plus size={15} />{editingId ? "Save Changes" : "Add Entry"}</Button>
             {editingId && (
               <Button onClick={resetForm} variant="outline">Cancel</Button>
             )}
@@ -309,59 +389,114 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
         </section>
       )}
 
-      {/* Item list */}
-      <section className="mt-6 max-w-4xl space-y-2">
+      {/* Clean Structured Data List View */}
+      <section className="mt-8 max-w-4xl space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-white/50">
+          {isBookings ? "Received Booking Inquiries" : isMessages ? "Received Contact Messages" : isGallery ? "Uploaded Gallery Images" : "Current Entries"} ({items.length})
+        </h2>
+
         {items.length ? (
           items.map((item) => (
-            <article className="flex items-start gap-4 border border-white/10 bg-[#161614] p-4" key={item.id}>
-              {typeof item.src === "string" && (
-                <img src={item.src} alt={typeof item.alt === "string" ? item.alt : ""} className="h-16 w-16 object-cover" />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">
-                  {String(item.title || item.author || item.name || item.email || (item.src ? "Gallery image" : "Untitled"))}
-                  {typeof item.email === "string" && item.name ? ` (${item.email})` : ""}
-                  {typeof item.phone === "string" && item.phone ? ` · Ph: ${item.phone}` : ""}
-                </p>
-                {isPricing ? (
-                  <p className="mt-1 text-sm text-white/45">
-                    {String(item.price ?? "")}{item.body ? ` · ${String(item.body)}` : ""}
-                  </p>
-                ) : isTestimonials ? (
-                  <p className="mt-1 line-clamp-2 text-sm text-white/45">{String(item.body || item.role || "")}</p>
-                ) : isGallery ? (
-                  <p className="mt-1 text-sm text-white/45">
-                    {String(item.alt || "No alt text")}
-                    {item.hidden ? " · Hidden" : " · Visible"}
-                  </p>
-                ) : (
-                  <p className="mt-1 line-clamp-2 text-sm text-white/45">
-                    {String(item.body || item.message || item.eventType || item.src || "")}
-                  </p>
-                )}
-              </div>
-              {!config.readOnly && (
-                <div className="flex shrink-0">
-                  <button
-                    onClick={() =>
-                      isGallery
-                        ? setEditingGallery({ id: item.id, alt: String(item.alt ?? ""), hidden: Boolean(item.hidden) })
-                        : edit(item)
-                    }
-                    aria-label="Edit item"
-                    className="p-2 text-white/40 hover:text-[#c7a66b]"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button onClick={() => remove(item.id)} aria-label="Delete item" className="p-2 text-white/40 hover:text-[#e7a29b]">
-                    <Trash2 size={16} />
-                  </button>
+            <article className="border border-white/10 bg-[#161614] p-5 shadow-sm transition hover:border-white/20" key={item.id}>
+              {isBookings || isMessages ? (
+                /* Structured Booking / Contact Card */
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2 text-base font-semibold text-[#c7a66b]">
+                      <UserIcon size={16} />
+                      {String(item.name || item.author || "Website Visitor")}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-white/40">
+                      <Calendar size={13} />
+                      {item.createdAt ? new Date(Number(item.createdAt)).toLocaleString() : "Recently received"}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2 text-sm text-white/80">
+                    {Boolean(item.email) && (
+                      <div className="flex items-center gap-2">
+                        <Mail size={14} className="text-[#c7a66b]" />
+                        <a href={`mailto:${item.email}`} className="hover:underline">{String(item.email)}</a>
+                      </div>
+                    )}
+                    {Boolean(item.phone) && (
+                      <div className="flex items-center gap-2">
+                        <Phone size={14} className="text-[#c7a66b]" />
+                        <a href={`tel:${item.phone}`} className="hover:underline">{String(item.phone)}</a>
+                      </div>
+                    )}
+                    {Boolean(item.date) && (
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} className="text-[#c7a66b]" />
+                        <span>Event Date: <strong>{String(item.date)}</strong></span>
+                      </div>
+                    )}
+                    {Boolean(item.eventType) && (
+                      <div className="flex items-center gap-2">
+                        <Tag size={14} className="text-[#c7a66b]" />
+                        <span>Session Type: <strong>{String(item.eventType)}</strong></span>
+                      </div>
+                    )}
+                  </div>
+
+                  {Boolean(item.message || item.body) && (
+                    <div className="mt-2 rounded bg-white/5 p-3 text-sm text-white/70">
+                      <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">Message Details:</p>
+                      <p className="whitespace-pre-wrap">{String(item.message || item.body)}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Standard Content Item (Gallery, Pricing, Services, Testimonials) */
+                <div className="flex items-start gap-4">
+                  {typeof item.src === "string" && (
+                    <img src={item.src} alt={typeof item.alt === "string" ? item.alt : ""} className="h-20 w-20 rounded object-cover border border-white/10" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base font-semibold text-white">
+                      {String(item.title || item.author || (item.src ? "Gallery Image" : "Untitled"))}
+                    </p>
+                    {isPricing ? (
+                      <div className="mt-1 text-sm">
+                        <span className="font-semibold text-[#c7a66b]">{String(item.price ?? "")}</span>
+                        {item.body ? <span className="text-white/60"> — {String(item.body)}</span> : null}
+                      </div>
+                    ) : isTestimonials ? (
+                      <p className="mt-1 text-sm text-white/60">
+                        "{String(item.body)}"{item.role ? <span className="text-[#c7a66b]"> — {String(item.role)}</span> : null}
+                      </p>
+                    ) : isGallery ? (
+                      <p className="mt-1 text-xs text-white/50">
+                        Alt: {String(item.alt || "No description")} {item.hidden ? " • [Hidden from public gallery]" : " • [Published]"}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-sm text-white/60">{String(item.body || "")}</p>
+                    )}
+                  </div>
+                  {!config.readOnly && (
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        onClick={() =>
+                          isGallery
+                            ? setEditingGallery({ id: item.id, alt: String(item.alt ?? ""), hidden: Boolean(item.hidden) })
+                            : edit(item)
+                        }
+                        aria-label="Edit item"
+                        className="p-2 text-white/40 hover:text-[#c7a66b]"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => remove(item.id)} aria-label="Delete item" className="p-2 text-white/40 hover:text-[#e7a29b]">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </article>
           ))
         ) : (
-          <p className="border border-dashed border-white/15 p-7 text-sm text-white/45">No entries yet.</p>
+          <p className="border border-dashed border-white/15 p-8 text-center text-sm text-white/40">No entries recorded yet.</p>
         )}
       </section>
     </div>
