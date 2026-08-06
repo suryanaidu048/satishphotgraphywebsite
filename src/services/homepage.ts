@@ -5,8 +5,12 @@ import { demoSections } from "@/lib/demo-content";
 import { subscribeToCollection } from "@/services/realtime";
 
 export function subscribeToHomepageSections(onData: (sections: HomepageSection[]) => void) {
-  if (!database) { onData([]); return () => undefined; }
-  return subscribeToCollection("homepageSections", (items) => onData((items as unknown as HomepageSection[]).sort((a, b) => a.order - b.order)), () => onData([]));
+  if (!database) { onData(demoSections); return () => undefined; }
+  return subscribeToCollection(
+    "homepageSections",
+    (items) => onData(items.length ? (items as unknown as HomepageSection[]).sort((a, b) => a.order - b.order) : demoSections),
+    () => onData(demoSections)
+  );
 }
 
 export async function updateHomepageSection(id: string, changes: Partial<HomepageSection>) {
