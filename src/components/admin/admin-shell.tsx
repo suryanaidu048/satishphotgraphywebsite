@@ -11,13 +11,10 @@ import { cn } from "@/lib/utils";
 const navigation = [
   { href: "/admin", label: "Homepage Control", icon: LayoutPanelTop },
   { href: "/admin/gallery", label: "Gallery Manager", icon: ImageIcon },
-  { href: "/admin/services", label: "Services", icon: Briefcase },
   { href: "/admin/pricing", label: "Pricing Collections", icon: Tag },
   { href: "/admin/testimonials", label: "Testimonials", icon: MessageSquareQuote },
   { href: "/admin/bookings", label: "Bookings", icon: Calendar },
   { href: "/admin/messages", label: "Messages", icon: Mail },
-  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminShell({ user, children }: { user: { email?: string | null } | User; children: React.ReactNode }) {

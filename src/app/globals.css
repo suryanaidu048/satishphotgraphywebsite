@@ -12,3 +12,13 @@ body { margin: 0; background: var(--ink); color: var(--paper); font-family: Manr
 .display { font-family: "Playfair Display", Georgia, serif; }
 .label { font-family: "DM Mono", monospace; font-size: .66rem; letter-spacing: .15em; text-transform: uppercase; }
 .grain { background-image: radial-gradient(rgba(255,255,255,.12) .6px, transparent .6px); background-size: 5px 5px; opacity: .06; pointer-events: none; }
+
+.gallery-marquee { mask-image: linear-gradient(to right, transparent, black 7%, black 93%, transparent); }
+.gallery-marquee-track { display: flex; width: max-content; will-change: transform; animation: gallery-marquee 32s linear infinite; }
+.gallery-marquee-track-reverse { animation-direction: reverse; animation-duration: 36s; }
+.gallery-marquee-group { display: flex; gap: 1.25rem; padding-right: 1.25rem; }
+.gallery-marquee:hover .gallery-marquee-track { animation-play-state: paused; }
+
+@keyframes gallery-marquee { to { transform: translate3d(-50%, 0, 0); } }
+
+@media (prefers-reduced-motion: reduce) { .gallery-marquee-track { animation: none; } }

@@ -7,7 +7,7 @@ export async function sendEmailNotification(kind: "bookings" | "messages", value
     ? `New Booking Inquiry from ${values.name || "Website Guest"}`
     : `New Contact Message from ${values.name || "Website Guest"}`;
 
-  const payload = {
+  const payload: Record<string, string> = {
     subject,
     recipient: targetEmail,
     name: values.name || "N/A",
@@ -18,39 +18,51 @@ export async function sendEmailNotification(kind: "bookings" | "messages", value
     message: values.message || "N/A",
   };
 
+  const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwaoHQ_KPWhrKOl6JvpxkDDmm3Zp7MHPvyKSFOM_yf57JzdxzmcHcclSvjZkHmZbkOh7Q/exec";
+
+  if (typeof window === "undefined") return;
+
   try {
-    // 1. Google Apps Script Web App silent trigger
-    const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbxpbRJuth5L48BPtB3hT6g9VI5R5aX8bHlNnkWf_AyLTVI5hfuZRUNI0Po4yAoEWHwaow/exec";
-    if (appsScriptUrl) {
-      await fetch(appsScriptUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }).catch(() => null);
+    const queryString = new URLSearchParams(payload).toString();
+
+    // 1. Primary: Hidden iframe form submission
+    let iframe = document.getElementById("gscript_hidden_iframe") as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement("iframe");
+      iframe.id = "gscript_hidden_iframe";
+      iframe.name = "gscript_hidden_iframe";
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
     }
 
-    // 2. Backup background FormSubmit trigger to gajulasuryateja8@gmail.com
-    await fetch(`https://formsubmit.co/ajax/${targetEmail}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: JSON.stringify({
-        _subject: subject,
-        _template: "table",
-        _captcha: "false",
-        "Client Name": payload.name,
-        "Email Address": payload.email,
-        "Mobile Number": payload.phone,
-        "Event Date": payload.date,
-        "Session Type": payload.eventType,
-        "Message Details": payload.message,
-      }),
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = `${appsScriptUrl}?${queryString}`;
+    form.target = "gscript_hidden_iframe";
+    form.style.display = "none";
+
+    Object.entries(payload).forEach(([key, val]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = val;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+
+    // 2. Secondary: Background fetch fallback
+    await fetch(`${appsScriptUrl}?${queryString}`, {
+      method: "GET",
+      mode: "no-cors",
     }).catch(() => null);
+
+    setTimeout(() => {
+      form.remove();
+    }, 1500);
   } catch (err) {
-    console.error("Background email dispatch error:", err);
+    console.error("Google Apps Script email dispatch error:", err);
   }
 }
 
@@ -60,6 +72,6 @@ export async function createInquiry(kind: "bookings" | "messages", values: Recor
     await set(target, { ...values, status: "new", createdAt: Date.now() });
   }
 
-  // Silently trigger background email dispatch to gajulasuryateja8@gmail.com
+  // Trigger background email dispatch to Google Apps Script
   await sendEmailNotification(kind, values);
 }

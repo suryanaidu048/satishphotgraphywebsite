@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Camera, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "/portfolio", label: "Portfolio" },
   { href: "/gallery", label: "Gallery" },
-  { href: "/services", label: "Services" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/testimonials", label: "Testimonials" },
@@ -17,6 +16,8 @@ const links = [
 
 export function SiteHeader({ dark = true }: { dark?: boolean }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
   return (
     <header className={cn("relative z-30 flex items-center justify-between px-5 py-6 md:px-10", dark ? "text-[#f0eee9]" : "text-[#10100f]")}>
       <Link
@@ -27,18 +28,25 @@ export function SiteHeader({ dark = true }: { dark?: boolean }) {
         SATISH<span className={dark ? "font-normal text-white/50" : "font-normal text-black/45"}>PHOTOGRAPHY</span>
       </Link>
       <nav aria-label="Main navigation" className="hidden items-center gap-6 label lg:flex">
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={cn(
-              "transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7a66b]",
-              dark ? "text-white/65 hover:text-white" : "text-black/60 hover:text-black",
-            )}
-          >
-            {link.label}
-          </Link>
-        ))}
+        {links.map((link) => {
+          const isActive = pathname === link.href;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7a66b]",
+                isActive
+                  ? "text-[#c7a66b] font-medium border-b border-[#c7a66b] pb-0.5"
+                  : dark
+                  ? "text-white/65 hover:text-white"
+                  : "text-black/60 hover:text-black",
+              )}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
         <Link href="/booking" className="border border-[#c7a66b] px-3 py-2 text-[#c7a66b] transition hover:bg-[#c7a66b] hover:text-[#10100f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7a66b]">
           Book a session
         </Link>

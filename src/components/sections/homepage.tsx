@@ -7,12 +7,35 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { subscribeToHomepageSections } from "@/services/homepage";
 import type { GalleryImage, HomepageSection } from "@/types/content";
+import { demoSections } from "@/lib/demo-content";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { subscribeToPublicEntries, type PublicEntry } from "@/services/content";
 
 function content<T>(section: HomepageSection) { return section.content as T; }
 function Eyebrow({ children }: { children: string }) { return <p className="label mb-5 text-[#c7a66b]">{children}</p>; }
+
+function CarouselCard({ image, compact = false }: { image: GalleryImage; compact?: boolean }) {
+  return (
+    <figure className={`flex-shrink-0 transition-transform duration-500 hover:-translate-y-1.5 ${compact ? "w-[170px] sm:w-[220px] md:w-[270px]" : "w-[200px] sm:w-[260px] md:w-[310px]"}`}>
+      <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-[#10100f]/5 shadow-sm">
+        <Image
+          src={image.src}
+          alt={image.alt || image.title || "Gallery work"}
+          fill
+          sizes={compact ? "(max-width: 640px) 170px, (max-width: 768px) 220px, 270px" : "(max-width: 640px) 200px, (max-width: 768px) 260px, 310px"}
+          className="object-cover transition duration-700 hover:scale-105"
+        />
+      </div>
+      {!compact && (
+        <figcaption className="mt-3 flex justify-between px-1 label text-[#10100f]/60">
+          <span className="truncate font-medium">{image.title || "Selected Story"}</span>
+          <span className="ml-2 flex-shrink-0 text-[#10100f]/40">{image.category || "Archive"}</span>
+        </figcaption>
+      )}
+    </figure>
+  );
+}
 
 function Hero({ section }: { section: HomepageSection }) {
   const data = content<{ eyebrow: string; title: string; subtitle: string; primaryCta: string; primaryHref: string; images: GalleryImage[] }>(section);
@@ -89,41 +112,68 @@ function Gallery({ section }: { section: HomepageSection }) {
   }, []);
 
   const sectionImages = (data.images ?? []).filter((img) => Boolean(img && img.src));
-  const liveItems = liveGallery.map((item) => ({ id: item.id, src: String(item.src ?? ""), alt: String(item.alt ?? "Gallery image"), title: String(item.title ?? ""), category: String(item.category ?? "") }));
+  const liveItems = liveGallery.map((item) => ({
+    id: item.id,
+    src: String(item.src ?? ""),
+    alt: String(item.alt ?? "Gallery image"),
+    title: String(item.title ?? ""),
+    category: String(item.category ?? "")
+  }));
 
   const combinedImages: GalleryImage[] = [
     ...liveItems,
     ...sectionImages,
-  ].filter((img) => Boolean(img.src)).slice(0, 9);
+  ].filter((img) => Boolean(img.src));
+
+  // Two sets give the carousel a continuous loop without loading the whole archive.
+  const carouselImages = combinedImages.slice(0, 12);
+  const hasCarousel = carouselImages.length > 1;
+  const reverseImages = [...carouselImages].reverse();
 
   return (
-    <section className="bg-[#f0eee9] px-5 py-24 text-[#10100f] md:px-10 md:py-32">
+    <section className="relative overflow-hidden bg-[#f0eee9] px-5 py-24 text-[#10100f] md:px-10 md:py-32">
       <div className="mx-auto max-w-[1480px]">
         <div className="mb-14 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <Eyebrow>{data.eyebrow}</Eyebrow>
             <h2 className="display text-5xl tracking-[-.04em] md:text-7xl">{data.title}</h2>
           </div>
-          <Link href="/gallery" className="label inline-flex items-center gap-2 border-b border-[#10100f] pb-2">
-            View all work <ArrowUpRight size={14} />
-          </Link>
+          <div className="flex items-center gap-5">
+            <Link href="/gallery" className="label inline-flex items-center gap-2 border-b border-[#10100f] pb-2">
+              View all work <ArrowUpRight size={14} />
+            </Link>
+          </div>
         </div>
-        {combinedImages.length ? (
-          <div className="grid gap-4 md:grid-cols-3">
-            {combinedImages.map((image, index) => (
-              <figure key={image.id} className={index === 1 ? "md:mt-20" : ""}>
-                <div className="relative aspect-[4/5] overflow-hidden">
-                  <Image src={image.src} alt={image.alt} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-700 hover:scale-105" />
+
+        {carouselImages.length ? (
+          <div className="relative">
+            {/* Left and Right Edge Gradient Fading Masks */}
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 sm:w-32 bg-gradient-to-r from-[#f0eee9] via-[#f0eee9]/90 to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 sm:w-32 bg-gradient-to-l from-[#f0eee9] via-[#f0eee9]/90 to-transparent" />
+
+            <div aria-label="Selected photography" className="gallery-marquee overflow-hidden px-2 py-4">
+              <div className="gallery-marquee-track">
+                {[carouselImages, carouselImages].map((group, groupIndex) => (
+                  <div className="gallery-marquee-group" key={groupIndex}>
+                    {group.map((image, index) => <CarouselCard image={image} key={`${image.id}-forward-${groupIndex}-${index}`} />)}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {hasCarousel && (
+              <div aria-label="More selected photography" className="gallery-marquee mt-5 overflow-hidden px-2 py-4">
+                <div className="gallery-marquee-track gallery-marquee-track-reverse">
+                  {[reverseImages, reverseImages].map((group, groupIndex) => (
+                    <div className="gallery-marquee-group" key={groupIndex}>
+                      {group.map((image, index) => <CarouselCard image={image} compact key={`${image.id}-reverse-${groupIndex}-${index}`} />)}
+                    </div>
+                  ))}
                 </div>
-                <figcaption className="mt-3 flex justify-between label text-[#10100f]/60">
-                  <span>{image.title}</span>
-                  <span>{image.category}</span>
-                </figcaption>
-              </figure>
-            ))}
+              </div>
+            )}
           </div>
         ) : (
-          <div className="rounded border border-dashed border-[#10100f]/20 bg-white/60 p-8 text-center text-sm text-[#10100f]/70">
+          <div className="rounded-2xl border border-dashed border-[#10100f]/20 bg-white/60 p-8 text-center text-sm text-[#10100f]/70">
             Upload gallery images from the admin panel to populate this section.
           </div>
         )}
@@ -165,10 +215,10 @@ function Services({ section }: { section: HomepageSection }) {
         <h2 className="display max-w-xl text-5xl tracking-[-.04em] md:text-7xl">{d.title}</h2>
         <div className="mt-12 divide-y divide-white/15 border-t border-white/15">
           {d.items.map((item) => (
-            <a href="#booking" key={item} className="group flex items-center justify-between py-5 text-xl md:text-2xl">
+            <Link href="/booking" key={item} className="group flex items-center justify-between py-5 text-xl md:text-2xl">
               <span>{item}</span>
               <ArrowUpRight className="text-[#c7a66b] transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
-            </a>
+            </Link>
           ))}
         </div>
       </div>
@@ -180,10 +230,10 @@ function Services({ section }: { section: HomepageSection }) {
 // Visibility filtering is already handled in Homepage before rendering.
 function Pricing({ section: _section }: { section: HomepageSection }) {
   const [plans, setPlans] = useState<PublicEntry[]>([]);
-  useEffect(() => subscribeToPublicEntries("pricingPlans", (items) => setPlans(items)), []);
+  useEffect(() => subscribeToPublicEntries("pricingPlans", setPlans), []);
 
   return (
-    <section className="bg-[#e9e5dd] px-5 py-24 text-[#10100f] md:px-10 md:py-32">
+    <section className="bg-white px-5 py-24 text-[#10100f] md:px-10 md:py-32">
       <div className="mx-auto max-w-[1480px]">
         <Eyebrow>Collections</Eyebrow>
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -191,13 +241,13 @@ function Pricing({ section: _section }: { section: HomepageSection }) {
           <Link href="/pricing" className="label border-b border-[#10100f] pb-2">Explore collections</Link>
         </div>
         {plans.length ? (
-          <div className="mt-14 grid gap-px bg-black/15 md:grid-cols-3">
+          <div className="mt-14 grid gap-4 md:grid-cols-3">
             {plans.map((plan) => (
-              <article className="bg-[#e9e5dd] p-6 md:p-8" key={plan.id}>
-                <p className="label text-[#8e7344]">{plan.price}</p>
+              <article className="border border-[#10100f]/15 p-6 md:p-8" key={plan.id}>
+                <p className="label text-[#c7a66b]">{plan.price}</p>
                 <h3 className="display mt-7 text-4xl">{plan.title}</h3>
-                <p className="mt-4 min-h-12 text-sm leading-6 text-black/60">{plan.body}</p>
-                <ul className="mt-7 space-y-2 text-sm">
+                <p className="mt-4 min-h-12 text-sm leading-6 text-[#10100f]/60">{plan.body}</p>
+                <ul className="mt-7 space-y-2 text-sm text-[#10100f]/70">
                   {(plan.features ?? []).map((feature) => <li key={feature}>— {feature}</li>)}
                 </ul>
                 <Link href="/booking" className="label mt-10 inline-block border-b border-[#10100f] pb-2">Request proposal</Link>
@@ -205,7 +255,7 @@ function Pricing({ section: _section }: { section: HomepageSection }) {
             ))}
           </div>
         ) : (
-          <div className="mt-10 rounded border border-dashed border-[#10100f]/20 bg-white/60 p-8 text-center text-sm text-[#10100f]/70">
+          <div className="mt-10 rounded border border-dashed border-[#10100f]/20 p-8 text-center text-sm text-[#10100f]/70">
             Add a package from the admin panel to show it here.
           </div>
         )}
@@ -217,7 +267,7 @@ function Pricing({ section: _section }: { section: HomepageSection }) {
 // BUG-11 fixed: Testimonials now accepts section prop for future section-level config access.
 function Testimonials({ section: _section }: { section: HomepageSection }) {
   const [quotes, setQuotes] = useState<PublicEntry[]>([]);
-  useEffect(() => subscribeToPublicEntries("testimonials", (items) => setQuotes(items)), []);
+  useEffect(() => subscribeToPublicEntries("testimonials", setQuotes), []);
 
   return (
     <section className="px-5 py-24 md:px-10 md:py-32">
@@ -264,8 +314,10 @@ function Booking({ section }: { section: HomepageSection }) {
 }
 
 export function Homepage() {
-  const [sections, setSections] = useState<HomepageSection[]>([]);
-  useEffect(() => subscribeToHomepageSections(setSections), []);
+  const [sections, setSections] = useState<HomepageSection[]>(demoSections);
+  useEffect(() => {
+    return subscribeToHomepageSections(setSections);
+  }, []);
 
   return (
     <>
