@@ -20,9 +20,6 @@ export function SiteFooter() {
                 className="object-contain"
               />
             </Link>
-            <p className="text-[12px] leading-relaxed text-white/40">
-              Turning Moments Into Timeless Memories
-            </p>
             {/* Social icons */}
             <div className="flex items-center gap-3">
               <a
@@ -55,7 +52,7 @@ export function SiteFooter() {
               {[
                 { href: "/", label: "Home" },
                 { href: "/services", label: "Services" },
-                { href: "/about", label: "About Us" },
+                { href: "/#about", label: "About Us" },
                 { href: "/contact", label: "Contact Us" },
               ].map(({ href, label }) => (
                 <Link
