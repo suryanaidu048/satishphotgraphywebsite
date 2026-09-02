@@ -11,11 +11,12 @@ export function AdminGate({ children }: { children: (user: User | { email: strin
   const [user, setUser] = useState<User | { email: string; uid: string } | null | undefined>(undefined);
 
   useEffect(() => {
-    // Check local storage PIN session first
+    // Check local storage session first
     if (typeof window !== "undefined") {
       const pinSession = localStorage.getItem("satish_admin_auth");
+      const storedEmail = localStorage.getItem("satish_admin_email") || "satish@satish.com";
       if (pinSession === "true") {
-        setUser({ email: "admin@satishphotography.in", uid: "admin-local" });
+        setUser({ email: storedEmail, uid: "admin-session" });
         return;
       }
     }
@@ -31,8 +32,9 @@ export function AdminGate({ children }: { children: (user: User | { email: strin
         setUser(current);
       } else {
         const pinSession = typeof window !== "undefined" ? localStorage.getItem("satish_admin_auth") : null;
+        const storedEmail = (typeof window !== "undefined" && localStorage.getItem("satish_admin_email")) || "satish@satish.com";
         if (pinSession === "true") {
-          setUser({ email: "admin@satishphotography.in", uid: "admin-local" });
+          setUser({ email: storedEmail, uid: "admin-session" });
         } else {
           setUser(null);
         }
