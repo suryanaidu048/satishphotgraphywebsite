@@ -1,9 +1,29 @@
 "use client";
 
-import { getIdTokenResult, onAuthStateChanged, signOut, type User } from "firebase/auth";
+import { onAuthStateChanged, type User } from "firebase/auth";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
+
+function checkAdminSession(): { authenticated: boolean; email: string } {
+  if (typeof window === "undefined") return { authenticated: false, email: "satish@satish.com" };
+  
+  const localAuth = localStorage.getItem("satish_admin_auth") === "true";
+  const localEmail = localStorage.getItem("satish_admin_email");
+
+  const cookieAuth = document.cookie.includes("satish_admin_auth=true");
+  const cookieEmailMatch = document.cookie.match(/satish_admin_email=([^;]+)/);
+  const cookieEmail = cookieEmailMatch ? decodeURIComponent(cookieEmailMatch[1]) : null;
+
+  if (localAuth || cookieAuth) {
+    return {
+      authenticated: true,
+      email: localEmail || cookieEmail || "satish@satish.com",
+    };
+  }
+
+  return { authenticated: false, email: "satish@satish.com" };
+}
 
 export function AdminGate({ children }: { children: (user: User | { email: string; uid: string }) => React.ReactNode }) {
   const router = useRouter();
@@ -11,14 +31,10 @@ export function AdminGate({ children }: { children: (user: User | { email: strin
   const [user, setUser] = useState<User | { email: string; uid: string } | null | undefined>(undefined);
 
   useEffect(() => {
-    // Check local storage session first
-    if (typeof window !== "undefined") {
-      const pinSession = localStorage.getItem("satish_admin_auth");
-      const storedEmail = localStorage.getItem("satish_admin_email") || "satish@satish.com";
-      if (pinSession === "true") {
-        setUser({ email: storedEmail, uid: "admin-session" });
-        return;
-      }
+    const session = checkAdminSession();
+    if (session.authenticated) {
+      setUser({ email: session.email, uid: "admin-session" });
+      return;
     }
 
     const firebaseAuth = auth;
@@ -31,10 +47,9 @@ export function AdminGate({ children }: { children: (user: User | { email: strin
       if (current) {
         setUser(current);
       } else {
-        const pinSession = typeof window !== "undefined" ? localStorage.getItem("satish_admin_auth") : null;
-        const storedEmail = (typeof window !== "undefined" && localStorage.getItem("satish_admin_email")) || "satish@satish.com";
-        if (pinSession === "true") {
-          setUser({ email: storedEmail, uid: "admin-session" });
+        const recheck = checkAdminSession();
+        if (recheck.authenticated) {
+          setUser({ email: recheck.email, uid: "admin-session" });
         } else {
           setUser(null);
         }
