@@ -3,7 +3,8 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { ArrowRight, Camera } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 
@@ -44,8 +45,8 @@ export default function AdminLoginPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-[#10100f] p-5 text-[#f0eee9]">
       <form onSubmit={submit} className="w-full max-w-md border border-white/15 bg-[#161614] p-7 md:p-10">
-        <div className="flex items-center gap-3 text-sm font-semibold tracking-[.08em]">
-          <Camera size={18} className="text-[#c7a66b]" />SATISH PHOTOGRAPHY
+        <div className="flex items-center">
+          <Image src="/logo.png" alt="Satish Photography" width={80} height={80} className="object-contain" />
         </div>
         <p className="label mt-12 text-[#c7a66b]">Private studio</p>
         <h1 className="display mt-4 text-5xl tracking-[-.05em]">Sign in.</h1>

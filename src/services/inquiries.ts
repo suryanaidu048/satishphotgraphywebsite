@@ -2,7 +2,7 @@ import { push, ref, set } from "firebase/database";
 import { database } from "@/lib/firebase";
 
 export async function sendEmailNotification(kind: "bookings" | "messages", values: Record<string, string>) {
-  const targetEmail = "gajulasuryateja8@gmail.com";
+  const targetEmail = "satishphotography16@gmail.com";
   const subject = kind === "bookings"
     ? `New Booking Inquiry from ${values.name || "Website Guest"}`
     : `New Contact Message from ${values.name || "Website Guest"}`;

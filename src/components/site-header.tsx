@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Camera, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const links = [
+  { href: "/", label: "Home" },
+  { href: "/services", label: "Services" },
   { href: "/gallery", label: "Gallery" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/about", label: "About" },
+  { href: "/#about", label: "About" },
   { href: "/testimonials", label: "Testimonials" },
   { href: "/contact", label: "Contact" },
 ];
@@ -22,10 +25,9 @@ export function SiteHeader({ dark = true }: { dark?: boolean }) {
     <header className={cn("relative z-30 flex items-center justify-between px-5 py-6 md:px-10", dark ? "text-[#f0eee9]" : "text-[#10100f]")}>
       <Link
         href="/"
-        className="flex items-center gap-3 text-sm font-semibold tracking-[.08em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7a66b]"
+        className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7a66b]"
       >
-        <Camera size={17} className="text-[#c7a66b]" />
-        SATISH<span className={dark ? "font-normal text-white/50" : "font-normal text-black/45"}>PHOTOGRAPHY</span>
+        <Image src="/logo.png" alt="Satish Photography" width={100} height={100} className="object-contain drop-shadow-lg" priority />
       </Link>
       <nav aria-label="Main navigation" className="hidden items-center gap-6 label lg:flex">
         {links.map((link) => {
