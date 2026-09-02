@@ -11,33 +11,48 @@ export function AdminGate({ children }: { children: (user: User | { email: strin
   const [user, setUser] = useState<User | { email: string; uid: string } | null | undefined>(undefined);
 
   useEffect(() => {
+    // Check local storage PIN session first
+    if (typeof window !== "undefined") {
+      const pinSession = localStorage.getItem("satish_admin_auth");
+      if (pinSession === "true") {
+        setUser({ email: "admin@satishphotography.in", uid: "admin-local" });
+        return;
+      }
+    }
+
     const firebaseAuth = auth;
     if (!firebaseAuth) {
       setUser(null);
       return;
     }
 
-    return onAuthStateChanged(firebaseAuth, async (current) => {
-      if (!current) {
-        setUser(null);
-        return;
-      }
-
-      try {
-        const token = await getIdTokenResult(current, true);
-        if (token.claims.admin === true) {
-          setUser(current);
-          return;
+    return onAuthStateChanged(firebaseAuth, (current) => {
+      if (current) {
+        setUser(current);
+      } else {
+        const pinSession = typeof window !== "undefined" ? localStorage.getItem("satish_admin_auth") : null;
+        if (pinSession === "true") {
+          setUser({ email: "admin@satishphotography.in", uid: "admin-local" });
+        } else {
+          setUser(null);
         }
-      } catch {
-        // A failed token check is treated as an unauthenticated session.
       }
-
-      await signOut(firebaseAuth).catch(() => null);
-      setUser(null);
     });
   }, []);
-  useEffect(() => { if (user === null) router.replace(`/admin/login?next=${encodeURIComponent(path)}`); }, [path, router, user]);
-  if (!user) return <main className="grid min-h-screen place-items-center bg-[#10100f] text-[#f0eee9]"><span className="label text-[#c7a66b]">Checking secure session…</span></main>;
+
+  useEffect(() => {
+    if (user === null) {
+      router.replace(`/admin/login?next=${encodeURIComponent(path)}`);
+    }
+  }, [path, router, user]);
+
+  if (!user) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#10100f] text-[#f0eee9]">
+        <span className="label text-[#c7a66b]">Checking secure session…</span>
+      </main>
+    );
+  }
+
   return <>{children(user)}</>;
 }
