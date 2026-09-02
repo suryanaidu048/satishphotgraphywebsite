@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("satish@satish.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
     const cleanPass = password.trim();
 
     if (!cleanEmail || !cleanPass) {
-      setError("Please enter your email and password / PIN.");
+      setError("Please enter your email and password.");
       setLoading(false);
       return;
     }
@@ -69,7 +69,7 @@ export default function AdminLoginPage() {
                 required
                 name="email"
                 type="email"
-                placeholder="satish@satish.com"
+                placeholder="Enter email address"
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -79,14 +79,14 @@ export default function AdminLoginPage() {
           </div>
 
           <div>
-            <label className="text-xs text-white/60 block mb-1 font-medium">Password or Security PIN</label>
+            <label className="text-xs text-white/60 block mb-1 font-medium">Password</label>
             <div className="relative">
               <Lock size={16} className="absolute left-3.5 top-3.5 text-white/40" />
               <input
                 required
                 name="password"
                 type="password"
-                placeholder="Enter password or PIN (Default: 1604)"
+                placeholder="Enter password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -101,11 +101,6 @@ export default function AdminLoginPage() {
             {loading ? "Authenticating…" : "Sign In to Admin Dashboard"}
             <ArrowRight size={15} />
           </Button>
-
-          <div className="pt-2 text-center text-xs text-white/40 border-t border-white/10 mt-4 space-y-1">
-            <p>Admin Email: <span className="text-[#c7a66b] font-mono">satish@satish.com</span></p>
-            <p>Default PIN: <span className="text-[#c7a66b] font-mono">1604</span> or <span className="text-[#c7a66b] font-mono">7997634562</span></p>
-          </div>
         </form>
       </div>
     </main>
