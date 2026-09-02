@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { FloatingContactBar } from "@/components/floating-contact-bar";
 
-export const metadata: Metadata = { title: "Satish Photography", description: "Cinematic photography for once-in-a-lifetime stories." };
+export const metadata: Metadata = { title: "Satish Photography", description: "Turning Moments Into Timeless Memories" };
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
@@ -13,6 +15,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Skip to main content
         </a>
         <div id="main-content">{children}</div>
+        <FloatingContactBar />
       </body>
     </html>
   );

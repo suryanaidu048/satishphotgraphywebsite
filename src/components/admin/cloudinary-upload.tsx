@@ -5,11 +5,11 @@ import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Asset = { url: string; publicId: string; width: number; height: number };
-type Props = { folder?: string; onUploaded?: (asset: Asset) => void };
+type Props = { folder?: string; label?: string; className?: string; onUploaded?: (asset: Asset) => void };
 const MAX_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
-export function CloudinaryUpload({ folder = "gallery", onUploaded }: Props) {
+export function CloudinaryUpload({ folder = "gallery", label, className, onUploaded }: Props) {
   const [state, setState] = useState<"idle" | "uploading" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
@@ -68,7 +68,7 @@ export function CloudinaryUpload({ folder = "gallery", onUploaded }: Props) {
   }
 
   return (
-    <label>
+    <label className="block w-full min-w-0">
       <input
         className="sr-only"
         type="file"
@@ -76,13 +76,13 @@ export function CloudinaryUpload({ folder = "gallery", onUploaded }: Props) {
         onChange={upload}
         disabled={state === "uploading"}
       />
-      <Button asChild variant="outline" size="sm">
-        <span>
-          <Upload size={14} />
-          {state === "uploading" ? "Uploading to Cloudinary…" : "Upload image to Cloudinary"}
+      <Button asChild variant="outline" size="sm" className={className || "w-full whitespace-normal leading-snug py-2 px-2.5 h-auto text-center text-[10px]"}>
+        <span className="flex items-center justify-center gap-1.5 min-w-0">
+          <Upload size={13} className="shrink-0" />
+          <span className="break-words">{state === "uploading" ? "Uploading…" : (label || "Upload image")}</span>
         </span>
       </Button>
-      {state === "error" && <p className="mt-2 text-xs text-[#e7a29b]">{errorMsg}</p>}
+      {state === "error" && <p className="mt-2 text-xs text-[#e7a29b] break-words">{errorMsg}</p>}
     </label>
   );
 }

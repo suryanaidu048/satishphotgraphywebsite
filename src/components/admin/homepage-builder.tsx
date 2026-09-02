@@ -47,10 +47,12 @@ export function HomepageBuilder() {
 
   const heroSection = items.find((item) => item.type === "hero");
   const gallerySection = items.find((item) => item.type === "gallery");
+  const whySection = items.find((item) => item.type === "whyChooseUs" || item.id === "whyChooseUs");
   const aboutSection = items.find((item) => item.type === "about");
   const heroContent = (heroSection?.content as HeroContent | undefined) ?? {};
   const galleryContent = (gallerySection?.content as GalleryContent | undefined) ?? {};
   const aboutContent = (aboutSection?.content as AboutContent | undefined) ?? {};
+  const whyContent = (whySection?.content as Record<string, string> | undefined) ?? {};
   const heroImages = heroContent.images ?? [];
   const galleryImages = galleryContent.images ?? [];
 
@@ -77,6 +79,13 @@ export function HomepageBuilder() {
     setNotice("Hero content is live on the public page.");
   }
 
+  async function handleWhyTextChange(field: string, value: string) {
+    const id = whySection?.id ?? "whyChooseUs";
+    const currentContent = (whySection?.content as Record<string, unknown> | undefined) ?? {};
+    await updateHomepageSection(id, { content: { ...currentContent, [field]: value } });
+    setNotice("Why Choose Us content is live on the public page.");
+  }
+
   async function handleGalleryTextChange(field: keyof GalleryContent, value: string) {
     const id = gallerySection?.id ?? "gallery";
     const currentContent = (gallerySection?.content as Record<string, unknown> | undefined) ?? {};
@@ -101,10 +110,8 @@ export function HomepageBuilder() {
   async function handleImageUpload(sectionId: string, index: number, asset: { url: string }) {
     const section = items.find((item) => item.id === sectionId) ?? { id: sectionId, type: sectionId as HomepageSection["type"], order: items.length, visible: true, published: true, content: {} };
     const currentImages = getSectionImages(section);
-    const nextImages = section.type === "hero"
-      ? Array.from({ length: 3 }, (_, slotIndex) => currentImages[slotIndex] ?? { id: `${section.type}-${slotIndex + 1}`, alt: `${section.type} image ${slotIndex + 1}`, src: "" })
-      : [...currentImages];
-    const nextImage = nextImages[index] ?? { id: `${section.type}-${index + 1}`, alt: `${section.type} image ${index + 1}` };
+    const nextImages = [...currentImages];
+    const nextImage = nextImages[index] ?? { id: `${section.type}-${index + 1}`, alt: `${section.type} image ${index + 1}`, src: "" };
     nextImages[index] = { ...nextImage, src: asset.url };
 
     setItems((current) => {
@@ -222,22 +229,83 @@ export function HomepageBuilder() {
               <input disabled={!sectionsLoaded} value={heroContent.primaryCta ?? ""} onChange={(event) => handleHeroTextChange("primaryCta", event.target.value)} placeholder="Primary button" className="border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40" />
               <input disabled={!sectionsLoaded} value={heroContent.primaryHref ?? ""} onChange={(event) => handleHeroTextChange("primaryHref", event.target.value)} placeholder="Primary link" className="border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40" />
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, index) => {
-                const image = heroImages[index];
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(heroImages.length ? heroImages : Array.from({ length: 3 }, (_, i) => ({ id: `hero-${i + 1}`, alt: `Hero image ${i + 1}`, src: "" }))).map((image, index) => {
                 return (
-                  <div key={`hero-${index}`} className="rounded border border-white/10 p-3">
-                    {image?.src ? <img src={image.src} alt={image.alt ?? `Hero image ${index + 1}`} className="mb-3 h-28 w-full object-cover" /> : <div className="mb-3 flex h-28 items-center justify-center border border-dashed border-white/15 text-sm text-white/40">No image yet</div>}
-                    <p className="mb-2 text-xs uppercase tracking-[0.2em] text-white/35">Hero slot {index + 1}</p>
-                    <div className="flex flex-col gap-2">
-                      <CloudinaryUpload folder="hero" onUploaded={(asset) => handleImageUpload("hero", index, asset)} />
-                      <Button variant="outline" size="sm" onClick={() => setPickerTarget({ sectionId: "hero", index })}>
-                        Select from gallery
+                  <div key={`hero-${index}`} className="flex flex-col justify-between rounded border border-white/10 p-3 min-w-0">
+                    <div>
+                      <div className="mb-2 flex items-center justify-between gap-1">
+                        <p className="text-[10px] uppercase tracking-[0.15em] text-white/40">Hero slot {index + 1}</p>
+                        {heroImages.length > 1 && heroSection && (
+                          <button
+                            onClick={() => handleRemoveImageSlot(heroSection.id, index)}
+                            className="text-[10px] text-white/40 hover:text-[#e7a29b]"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      {image?.src ? (
+                        <img src={image.src} alt={image.alt ?? `Hero image ${index + 1}`} className="mb-3 h-28 w-full object-cover rounded" />
+                      ) : (
+                        <div className="mb-3 flex h-28 items-center justify-center border border-dashed border-white/15 text-xs text-white/40">
+                          No image yet
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 min-w-0">
+                      <CloudinaryUpload folder="hero" label="Upload photo" onUploaded={(asset) => handleImageUpload("hero", index, asset)} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full whitespace-normal leading-snug py-2 px-2 h-auto text-center text-[10px]"
+                        onClick={() => setPickerTarget({ sectionId: "hero", index })}
+                      >
+                        Select existing
                       </Button>
                     </div>
                   </div>
                 );
               })}
+            </div>
+            {heroSection && (
+              <button
+                onClick={() => handleAddImageSlot(heroSection.id)}
+                className="mt-3 w-full rounded border border-dashed border-white/10 px-3 py-2 text-xs text-[#c7a66b] hover:border-[#c7a66b]"
+              >
+                + Add another hero slide
+              </button>
+            )}
+          </div>
+
+          <div className="border border-white/10 bg-[#161614] p-5">
+            <div className="flex items-center gap-2">
+              <ImagePlus size={16} className="text-[#c7a66b]" />
+              <h2 className="text-lg font-semibold">Why Choose Us section</h2>
+            </div>
+            <div className="mt-4 space-y-3">
+              <input
+                disabled={!sectionsLoaded}
+                value={whyContent.badge ?? ""}
+                onChange={(event) => handleWhyTextChange("badge", event.target.value)}
+                placeholder="Badge (e.g. Trusted by Happy Couples)"
+                className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40"
+              />
+              <input
+                disabled={!sectionsLoaded}
+                value={whyContent.title ?? ""}
+                onChange={(event) => handleWhyTextChange("title", event.target.value)}
+                placeholder="Title (e.g. WHY COUPLES CHOOSE US?)"
+                className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40"
+              />
+              <textarea
+                disabled={!sectionsLoaded}
+                value={whyContent.body ?? ""}
+                onChange={(event) => handleWhyTextChange("body", event.target.value)}
+                placeholder="Description paragraph"
+                rows={3}
+                className="w-full resize-none border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40"
+              />
             </div>
           </div>
 
@@ -252,16 +320,16 @@ export function HomepageBuilder() {
             </div>
             <div className="mt-4 space-y-3">
               {galleryImages.map((image, index) => (
-                <div key={`gallery-${index}`} className="rounded border border-white/10 p-3">
+                <div key={`gallery-${index}`} className="rounded border border-white/10 p-3 min-w-0">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <p className="text-xs uppercase tracking-[0.2em] text-white/35">Gallery slot {index + 1}</p>
                     <button onClick={() => gallerySection && handleRemoveImageSlot(gallerySection.id, index)} className="text-xs text-white/40 hover:text-[#e7a29b]">Remove</button>
                   </div>
-                  {image?.src ? <img src={image.src} alt={image.alt ?? `Gallery image ${index + 1}`} className="mb-3 h-28 w-full object-cover" /> : <div className="mb-3 flex h-28 items-center justify-center border border-dashed border-white/15 text-sm text-white/40">No image yet</div>}
-                  <div className="flex flex-wrap gap-2">
-                    <CloudinaryUpload folder="gallery" onUploaded={(asset) => handleImageUpload("gallery", index, asset)} />
-                    <Button variant="outline" size="sm" onClick={() => setPickerTarget({ sectionId: "gallery", index })}>
-                      Select from gallery
+                  {image?.src ? <img src={image.src} alt={image.alt ?? `Gallery image ${index + 1}`} className="mb-3 h-28 w-full object-cover rounded" /> : <div className="mb-3 flex h-28 items-center justify-center border border-dashed border-white/15 text-sm text-white/40">No image yet</div>}
+                  <div className="flex flex-wrap gap-2 min-w-0">
+                    <CloudinaryUpload folder="gallery" label="Upload photo" onUploaded={(asset) => handleImageUpload("gallery", index, asset)} />
+                    <Button variant="outline" size="sm" className="whitespace-normal leading-snug py-2 px-2.5 h-auto text-[10px]" onClick={() => setPickerTarget({ sectionId: "gallery", index })}>
+                      Select existing
                     </Button>
                   </div>
                 </div>
@@ -283,13 +351,13 @@ export function HomepageBuilder() {
                 <input disabled={!sectionsLoaded} value={aboutContent.stat ?? ""} onChange={(event) => handleAboutTextChange("stat", event.target.value)} placeholder="Stat (e.g. 12 years)" className="border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40" />
                 <input disabled={!sectionsLoaded} value={aboutContent.statLabel ?? ""} onChange={(event) => handleAboutTextChange("statLabel", event.target.value)} placeholder="Stat label (e.g. of human stories)" className="border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40" />
               </div>
-              <div className="rounded border border-white/10 p-3">
+              <div className="rounded border border-white/10 p-3 min-w-0">
                 <p className="mb-2 text-xs uppercase tracking-[0.2em] text-white/35">About section image</p>
-                {aboutContent.image ? <img src={aboutContent.image} alt="About image" className="mb-3 h-36 w-full object-cover" /> : <div className="mb-3 flex h-36 items-center justify-center border border-dashed border-white/15 text-sm text-white/40">No image selected</div>}
-                <div className="flex flex-wrap gap-2">
-                  <CloudinaryUpload folder="about" onUploaded={(asset) => handleAboutImageChange(asset.url)} />
-                  <Button variant="outline" size="sm" onClick={() => setPickerTarget({ sectionId: "about" })}>
-                    Select from gallery
+                {aboutContent.image ? <img src={aboutContent.image} alt="About image" className="mb-3 h-36 w-full object-cover rounded" /> : <div className="mb-3 flex h-36 items-center justify-center border border-dashed border-white/15 text-sm text-white/40">No image selected</div>}
+                <div className="flex flex-wrap gap-2 min-w-0">
+                  <CloudinaryUpload folder="about" label="Upload photo" onUploaded={(asset) => handleAboutImageChange(asset.url)} />
+                  <Button variant="outline" size="sm" className="whitespace-normal leading-snug py-2 px-2.5 h-auto text-[10px]" onClick={() => setPickerTarget({ sectionId: "about" })}>
+                    Select existing
                   </Button>
                 </div>
               </div>
@@ -320,13 +388,13 @@ export function HomepageBuilder() {
             </div>
             <div className="mt-4 space-y-2">
               {pricingItems.length ? pricingItems.map((item) => (
-                <article key={item.id} className="border border-white/10 bg-[#10100f] p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{String(item.title ?? "Untitled")}</p>
-                      <p className="mt-1 text-sm text-white/45">{String(item.price ?? "")}</p>
+                <article key={item.id} className="border border-white/10 bg-[#10100f] p-3 min-w-0">
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium break-words [overflow-wrap:anywhere]">{String(item.title ?? "Untitled")}</p>
+                      <p className="mt-1 text-sm text-white/45 break-words [overflow-wrap:anywhere]">{String(item.price ?? "")}</p>
                     </div>
-                    <div className="flex">
+                    <div className="flex shrink-0">
                       <button onClick={() => startEditingPricing(item)} className="p-2 text-white/45 hover:text-[#c7a66b]" aria-label="Edit package"><PencilLine size={16} /></button>
                       <button onClick={() => removePricingItem(item.id)} className="p-2 text-white/45 hover:text-[#e7a29b]" aria-label="Delete package"><Trash2 size={16} /></button>
                     </div>
@@ -357,13 +425,13 @@ export function HomepageBuilder() {
             </div>
             <div className="mt-4 space-y-2">
               {testimonialItems.length ? testimonialItems.map((item) => (
-                <article key={item.id} className="border border-white/10 bg-[#10100f] p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{String(item.author ?? "Anonymous")}</p>
-                      <p className="mt-1 text-sm text-white/45">{String(item.body ?? "")}</p>
+                <article key={item.id} className="border border-white/10 bg-[#10100f] p-3 min-w-0">
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium break-words [overflow-wrap:anywhere]">{String(item.author ?? "Anonymous")}</p>
+                      <p className="mt-1 text-sm text-white/45 break-words [overflow-wrap:anywhere]">{String(item.body ?? "")}</p>
                     </div>
-                    <div className="flex">
+                    <div className="flex shrink-0">
                       <button onClick={() => startEditingTestimonial(item)} className="p-2 text-white/45 hover:text-[#c7a66b]" aria-label="Edit testimonial"><PencilLine size={16} /></button>
                       <button onClick={() => removeTestimonialItem(item.id)} className="p-2 text-white/45 hover:text-[#e7a29b]" aria-label="Delete testimonial"><Trash2 size={16} /></button>
                     </div>
