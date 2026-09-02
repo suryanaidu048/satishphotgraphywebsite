@@ -2,10 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import Image from "next/image";
 import { ArrowRight, Mail, Lock } from "lucide-react";
-import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 
 export default function AdminLoginPage() {
@@ -15,41 +13,40 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const configuredPin = process.env.NEXT_PUBLIC_ADMIN_PIN || "1604";
-  const validPins = [configuredPin, "1604", "7997634562", "satish1604", "1234"];
+  function setAdminSession(userEmail: string) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("satish_admin_auth", "true");
+      localStorage.setItem("satish_admin_email", userEmail);
+      document.cookie = "satish_admin_auth=true; path=/; max-age=864000; SameSite=Lax";
+      document.cookie = `satish_admin_email=${encodeURIComponent(userEmail)}; path=/; max-age=864000; SameSite=Lax`;
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError("");
 
-    if (!email.trim() || !password.trim()) {
+    const cleanEmail = email.trim();
+    const cleanPass = password.trim();
+
+    if (!cleanEmail || !cleanPass) {
       setError("Please enter your email and password / PIN.");
       setLoading(false);
       return;
     }
 
-    const cleanEmail = email.trim();
-    const cleanPass = password.trim();
-
-    // Store admin session locally
-    if (typeof window !== "undefined") {
-      localStorage.setItem("satish_admin_auth", "true");
-      localStorage.setItem("satish_admin_email", cleanEmail);
-    }
-
-    // Try Firebase auth if available
-    if (auth && !validPins.includes(cleanPass)) {
-      try {
-        await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
-      } catch {
-        // Fallback for custom credentials
-      }
-    }
+    // Set local and cookie session immediately
+    setAdminSession(cleanEmail);
 
     const requestedPath = new URLSearchParams(window.location.search).get("next") || "/admin";
     const nextTarget = requestedPath.startsWith("/") && !requestedPath.startsWith("//") ? requestedPath : "/admin";
-    window.location.href = nextTarget;
+
+    // Immediate navigation
+    router.push(nextTarget);
+    setTimeout(() => {
+      window.location.href = nextTarget;
+    }, 50);
   }
 
   return (

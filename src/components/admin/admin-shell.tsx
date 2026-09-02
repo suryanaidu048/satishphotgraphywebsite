@@ -25,6 +25,9 @@ export function AdminShell({ user, children }: { user: { email?: string | null }
   async function logout() {
     if (typeof window !== "undefined") {
       localStorage.removeItem("satish_admin_auth");
+      localStorage.removeItem("satish_admin_email");
+      document.cookie = "satish_admin_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie = "satish_admin_email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     }
     if (auth) await signOut(auth).catch(() => null);
     router.replace("/admin/login");

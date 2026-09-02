@@ -1,11 +1,11 @@
 "use client";
 
-import { onAuthStateChanged, type User } from "firebase/auth";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
+import { onAuthStateChanged, type User } from "firebase/auth";
 
-function checkAdminSession(): { authenticated: boolean; email: string } {
+export function getAdminSession(): { authenticated: boolean; email: string } {
   if (typeof window === "undefined") return { authenticated: false, email: "satish@satish.com" };
   
   const localAuth = localStorage.getItem("satish_admin_auth") === "true";
@@ -28,10 +28,14 @@ function checkAdminSession(): { authenticated: boolean; email: string } {
 export function AdminGate({ children }: { children: (user: User | { email: string; uid: string }) => React.ReactNode }) {
   const router = useRouter();
   const path = usePathname();
-  const [user, setUser] = useState<User | { email: string; uid: string } | null | undefined>(undefined);
+  const [user, setUser] = useState<User | { email: string; uid: string } | null | undefined>(() => {
+    const session = getAdminSession();
+    return session.authenticated ? { email: session.email, uid: "admin-session" } : undefined;
+  });
 
   useEffect(() => {
-    const session = checkAdminSession();
+    // Synchronously check admin session first
+    const session = getAdminSession();
     if (session.authenticated) {
       setUser({ email: session.email, uid: "admin-session" });
       return;
@@ -43,27 +47,37 @@ export function AdminGate({ children }: { children: (user: User | { email: strin
       return;
     }
 
-    return onAuthStateChanged(firebaseAuth, (current) => {
-      if (current) {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (current) => {
+      const activeSession = getAdminSession();
+      if (activeSession.authenticated) {
+        setUser({ email: activeSession.email, uid: "admin-session" });
+      } else if (current) {
         setUser(current);
       } else {
-        const recheck = checkAdminSession();
-        if (recheck.authenticated) {
-          setUser({ email: recheck.email, uid: "admin-session" });
-        } else {
-          setUser(null);
-        }
+        setUser(null);
       }
     });
-  }, []);
+
+    return () => unsubscribe();
+  }, [path]);
 
   useEffect(() => {
     if (user === null) {
-      router.replace(`/admin/login?next=${encodeURIComponent(path)}`);
+      const currentSession = getAdminSession();
+      if (!currentSession.authenticated) {
+        router.replace(`/admin/login?next=${encodeURIComponent(path)}`);
+      } else {
+        setUser({ email: currentSession.email, uid: "admin-session" });
+      }
     }
   }, [path, router, user]);
 
   if (!user) {
+    const fallbackSession = getAdminSession();
+    if (fallbackSession.authenticated) {
+      return <>{children({ email: fallbackSession.email, uid: "admin-session" })}</>;
+    }
+
     return (
       <main className="grid min-h-screen place-items-center bg-[#10100f] text-[#f0eee9]">
         <span className="label text-[#c7a66b]">Checking secure session…</span>
