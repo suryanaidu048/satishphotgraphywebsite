@@ -12,26 +12,29 @@ export function AdminGate({ children }: { children: (user: User | { email: strin
 
   useEffect(() => {
     const firebaseAuth = auth;
-    const isLocalSession = typeof window !== "undefined" && localStorage.getItem("satish_admin_session") === "true";
-
-    if (isLocalSession) {
-      setUser({ email: "admin@satishphotography.com", uid: "studio-admin" });
-      return;
-    }
-
     if (!firebaseAuth) {
-      setUser(isLocalSession ? { email: "admin@satishphotography.com", uid: "studio-admin" } : null);
+      setUser(null);
       return;
     }
 
-    return onAuthStateChanged(firebaseAuth, (current) => {
-      if (current) {
-        setUser(current);
-      } else if (localStorage.getItem("satish_admin_session") === "true") {
-        setUser({ email: "admin@satishphotography.com", uid: "studio-admin" });
-      } else {
+    return onAuthStateChanged(firebaseAuth, async (current) => {
+      if (!current) {
         setUser(null);
+        return;
       }
+
+      try {
+        const token = await getIdTokenResult(current, true);
+        if (token.claims.admin === true) {
+          setUser(current);
+          return;
+        }
+      } catch {
+        // A failed token check is treated as an unauthenticated session.
+      }
+
+      await signOut(firebaseAuth).catch(() => null);
+      setUser(null);
     });
   }, []);
   useEffect(() => { if (user === null) router.replace(`/admin/login?next=${encodeURIComponent(path)}`); }, [path, router, user]);

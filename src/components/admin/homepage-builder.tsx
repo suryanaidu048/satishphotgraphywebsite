@@ -47,14 +47,23 @@ export function HomepageBuilder() {
 
   const heroSection = items.find((item) => item.type === "hero");
   const gallerySection = items.find((item) => item.type === "gallery");
+  const servicesSection = items.find((item) => item.type === "services" || item.id === "services");
   const whySection = items.find((item) => item.type === "whyChooseUs" || item.id === "whyChooseUs");
   const aboutSection = items.find((item) => item.type === "about");
   const heroContent = (heroSection?.content as HeroContent | undefined) ?? {};
+  const servicesContent = (servicesSection?.content as Record<string, string> | undefined) ?? {};
   const galleryContent = (gallerySection?.content as GalleryContent | undefined) ?? {};
   const aboutContent = (aboutSection?.content as AboutContent | undefined) ?? {};
   const whyContent = (whySection?.content as Record<string, string> | undefined) ?? {};
   const heroImages = heroContent.images ?? [];
   const galleryImages = galleryContent.images ?? [];
+
+  async function handleServicesTextChange(field: string, value: string) {
+    const id = servicesSection?.id ?? "services";
+    const currentContent = (servicesSection?.content as Record<string, unknown> | undefined) ?? {};
+    await updateHomepageSection(id, { content: { ...currentContent, [field]: value } });
+    setNotice("Services section header content is live on the public page.");
+  }
 
   async function seedHomepage() {
     if (!database) { setNotice("Realtime Database is not configured."); return; }
@@ -303,6 +312,37 @@ export function HomepageBuilder() {
                 value={whyContent.body ?? ""}
                 onChange={(event) => handleWhyTextChange("body", event.target.value)}
                 placeholder="Description paragraph"
+                rows={3}
+                className="w-full resize-none border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40"
+              />
+            </div>
+          </div>
+
+          <div className="border border-white/10 bg-[#161614] p-5">
+            <div className="flex items-center gap-2">
+              <ImagePlus size={16} className="text-[#c7a66b]" />
+              <h2 className="text-lg font-semibold">Services section header</h2>
+            </div>
+            <div className="mt-4 space-y-3">
+              <input
+                disabled={!sectionsLoaded}
+                value={servicesContent.eyebrow ?? ""}
+                onChange={(event) => handleServicesTextChange("eyebrow", event.target.value)}
+                placeholder="Eyebrow (e.g. One studio, many kinds of story.)"
+                className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40"
+              />
+              <input
+                disabled={!sectionsLoaded}
+                value={servicesContent.title ?? ""}
+                onChange={(event) => handleServicesTextChange("title", event.target.value)}
+                placeholder="Title (e.g. CAPTURING MOMENTS. CREATING MEMORIES.)"
+                className="w-full border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40"
+              />
+              <textarea
+                disabled={!sectionsLoaded}
+                value={servicesContent.body ?? ""}
+                onChange={(event) => handleServicesTextChange("body", event.target.value)}
+                placeholder="Description paragraph (e.g. Every celebration has a story worth telling...)"
                 rows={3}
                 className="w-full resize-none border border-white/15 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-[#c7a66b] disabled:opacity-40"
               />

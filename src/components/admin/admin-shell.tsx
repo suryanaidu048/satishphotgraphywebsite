@@ -24,7 +24,6 @@ export function AdminShell({ user, children }: { user: { email?: string | null }
 
   async function logout() {
     if (auth) await signOut(auth).catch(() => null);
-    localStorage.removeItem("satish_admin_session");
     router.replace("/admin/login");
   }
 

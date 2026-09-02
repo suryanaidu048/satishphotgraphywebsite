@@ -11,11 +11,33 @@
     "analytics": { ".read": "auth != null && auth.token.admin === true", ".write": "auth != null && auth.token.admin === true" },
     "bookings": {
       ".read": "auth != null && auth.token.admin === true",
-      "$id": { ".write": "(auth != null && auth.token.admin === true) || (!data.exists() && newData.child('name').isString() && newData.child('name').val().length <= 120 && newData.child('email').isString() && newData.child('email').val().length <= 254 && newData.child('message').isString() && newData.child('message').val().length > 0 && newData.child('message').val().length <= 4000 && newData.child('status').val() === 'new')" }
+      "$id": {
+        ".write": "(auth != null && auth.token.admin === true) || !data.exists()",
+        ".validate": "(auth != null && auth.token.admin === true) || newData.hasChildren(['name', 'email', 'phone', 'date', 'eventType', 'message', 'status', 'createdAt'])",
+        "name": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isString() && newData.val().length > 0 && newData.val().length <= 120)" },
+        "email": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isString() && newData.val().length > 3 && newData.val().length <= 254)" },
+        "phone": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isString() && newData.val().length > 5 && newData.val().length <= 32)" },
+        "date": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isString() && newData.val().matches(/^(19|20)[0-9][0-9]-[0-1][0-9]-[0-3][0-9]$/))" },
+        "eventType": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isString() && newData.val().length > 0 && newData.val().length <= 100)" },
+        "message": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isString() && newData.val().length > 0 && newData.val().length <= 4000)" },
+        "status": { ".validate": "(auth != null && auth.token.admin === true) || newData.val() === 'new'" },
+        "createdAt": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isNumber() && newData.val() <= now)" },
+        "$other": { ".validate": "auth != null && auth.token.admin === true" }
+      }
     },
     "messages": {
       ".read": "auth != null && auth.token.admin === true",
-      "$id": { ".write": "(auth != null && auth.token.admin === true) || (!data.exists() && newData.child('name').isString() && newData.child('name').val().length <= 120 && newData.child('email').isString() && newData.child('email').val().length <= 254 && newData.child('message').isString() && newData.child('message').val().length > 0 && newData.child('message').val().length <= 4000 && newData.child('status').val() === 'new')" }
+      "$id": {
+        ".write": "(auth != null && auth.token.admin === true) || !data.exists()",
+        ".validate": "(auth != null && auth.token.admin === true) || newData.hasChildren(['name', 'email', 'phone', 'message', 'status', 'createdAt'])",
+        "name": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isString() && newData.val().length > 0 && newData.val().length <= 120)" },
+        "email": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isString() && newData.val().length > 3 && newData.val().length <= 254)" },
+        "phone": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isString() && newData.val().length > 5 && newData.val().length <= 32)" },
+        "message": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isString() && newData.val().length > 0 && newData.val().length <= 4000)" },
+        "status": { ".validate": "(auth != null && auth.token.admin === true) || newData.val() === 'new'" },
+        "createdAt": { ".validate": "(auth != null && auth.token.admin === true) || (newData.isNumber() && newData.val() <= now)" },
+        "$other": { ".validate": "auth != null && auth.token.admin === true" }
+      }
     }
   }
 }

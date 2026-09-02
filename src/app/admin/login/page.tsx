@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { auth } from "@/lib/firebase";
@@ -26,20 +26,21 @@ export default function AdminLoginPage() {
       return;
     }
 
-    const firebaseAuth = auth;
-    if (firebaseAuth) {
-      try {
-        await signInWithEmailAndPassword(firebaseAuth, email, password).catch(async () => {
-          await createUserWithEmailAndPassword(firebaseAuth, email, password).catch(() => null);
-        });
-      } catch {
-        // Fallback to studio session
-      }
+    if (!auth) {
+      setError("Admin authentication is not configured.");
+      setLoading(false);
+      return;
     }
 
-    const nextTarget = typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("next") || "/admin") : "/admin";
-    localStorage.setItem("satish_admin_session", "true");
-    router.replace(nextTarget);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      const requestedPath = new URLSearchParams(window.location.search).get("next") || "/admin";
+      const nextTarget = requestedPath.startsWith("/") && !requestedPath.startsWith("//") ? requestedPath : "/admin";
+      router.replace(nextTarget);
+    } catch {
+      setError("Sign-in failed. Check your credentials and administrator access.");
+      setLoading(false);
+    }
   }
 
   return (
