@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowRight, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword, type AuthError } from "firebase/auth";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -13,12 +15,22 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function setAdminSession(userEmail: string) {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("satish_admin_auth", "true");
-      localStorage.setItem("satish_admin_email", userEmail);
-      document.cookie = "satish_admin_auth=true; path=/; max-age=864000; SameSite=Lax";
-      document.cookie = `satish_admin_email=${encodeURIComponent(userEmail)}; path=/; max-age=864000; SameSite=Lax`;
+  function friendlyAuthError(code: string): string {
+    switch (code) {
+      case "auth/invalid-credential":
+      case "auth/wrong-password":
+      case "auth/user-not-found":
+        return "Incorrect email or password. Please try again.";
+      case "auth/invalid-email":
+        return "That doesn't look like a valid email address.";
+      case "auth/too-many-requests":
+        return "Too many failed attempts. Please wait a moment and try again.";
+      case "auth/user-disabled":
+        return "This account has been disabled. Contact the site owner.";
+      case "auth/network-request-failed":
+        return "Network error. Check your connection and try again.";
+      default:
+        return "Sign-in failed. Please check your credentials.";
     }
   }
 
@@ -36,17 +48,28 @@ export default function AdminLoginPage() {
       return;
     }
 
-    // Set local and cookie session immediately
-    setAdminSession(cleanEmail);
+    // Firebase must be configured — without it there is no safe way to verify identity
+    if (!auth) {
+      setError("Authentication service is not configured. Contact the site owner.");
+      setLoading(false);
+      return;
+    }
 
-    const requestedPath = new URLSearchParams(window.location.search).get("next") || "/admin";
-    const nextTarget = requestedPath.startsWith("/") && !requestedPath.startsWith("//") ? requestedPath : "/admin";
+    try {
+      // Sign in via Firebase — this is the ONLY gate; we navigate only on success
+      await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
 
-    // Immediate navigation
-    router.push(nextTarget);
-    setTimeout(() => {
-      window.location.href = nextTarget;
-    }, 50);
+      const requestedPath = new URLSearchParams(window.location.search).get("next") || "/admin";
+      const nextTarget =
+        requestedPath.startsWith("/") && !requestedPath.startsWith("//") ? requestedPath : "/admin";
+
+      router.push(nextTarget);
+    } catch (err) {
+      const authErr = err as AuthError;
+      setError(friendlyAuthError(authErr.code ?? ""));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

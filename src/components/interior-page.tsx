@@ -9,9 +9,10 @@ import { SiteFooter } from "@/components/site-footer";
 import { InquiryForm } from "@/components/inquiry-form";
 import { subscribeToPublicEntries, type PublicEntry } from "@/services/content";
 import { defaultTestimonials, defaultPricingPlans } from "@/lib/demo-content";
+import { defaultSiteSettings, subscribeToSiteSettings, type SiteSettings } from "@/services/site-settings";
 
-type Page = { eyebrow: string; title: string; intro: string };
-const pages: Record<string, Page> = {
+// Fallback page metadata (used when Firebase hasn't loaded yet)
+const defaultPages: Record<string, { eyebrow: string; title: string; intro: string }> = {
   portfolio: { eyebrow: "OUR STORIES", title: "The moments we loved capturing.", intro: "From big celebrations to the little moments in between, explore our latest work." },
   gallery: { eyebrow: "OUR STORIES", title: "The moments we loved capturing.", intro: "From big celebrations to the little moments in between, explore our latest work." },
   services: { eyebrow: "The Studio", title: "CAPTURING MOMENTS. CREATING MEMORIES.", intro: "Every celebration has a story worth telling. We specialize in capturing genuine emotions, timeless moments, and beautiful connections through creative photography and cinematic storytelling." },
@@ -20,7 +21,7 @@ const pages: Record<string, Page> = {
   testimonials: { eyebrow: "In Their Words", title: "The feeling stays with them.", intro: "Kind words from people who trusted us with their most cherished days." },
   awards: { eyebrow: "Recognition", title: "Work made with care, seen with generosity.", intro: "A few acknowledgements that keep us curious and grateful." },
   faq: { eyebrow: "Helpful Answers", title: "The details, made simple.", intro: "If you don't see your question here, we'll be glad to talk it through." },
-  contact: { eyebrow: "Get In Touch", title: "Start a conversation", intro: "Your story deserves to be beautifully remembered. Reach out to us about your plans, your ideas, or simply to say hello. We’re always happy to connect." },
+  contact: { eyebrow: "Get In Touch", title: "Start a conversation", intro: "Your story deserves to be beautifully remembered. Reach out to us about your plans, your ideas, or simply to say hello." },
   "privacy-policy": { eyebrow: "Privacy", title: "Your information, handled with care.", intro: "We only use your details to respond to inquiries and deliver the photography services you request." },
   terms: { eyebrow: "Terms", title: "A clear agreement, from the start.", intro: "Booking terms, payment schedules and usage rights are confirmed in your individual service agreement." },
 };
@@ -37,6 +38,8 @@ const CATEGORY_TABS = [
   { label: "Others", value: "Others" },
 ];
 
+import { WireframePlaceholder } from "@/components/ui/wireframe-placeholder";
+
 function GalleryGrid() {
   const [items, setItems] = useState<PublicEntry[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -46,24 +49,14 @@ function GalleryGrid() {
     return unsub;
   }, []);
 
-  const galleryItems = items.length
-    ? items
-        .map((x) => ({
-          id: x.id,
-          src: String(x.src ?? ""),
-          title: String(x.title || x.category || "Selected work"),
-          category: String(x.category || "Wedding Photography"),
-        }))
-        .filter((x) => Boolean(x.src))
-    : [
-        { id: "1", src: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80", title: "Royal Wedding Ceremony", category: "Wedding Photography" },
-        { id: "2", src: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&q=80", title: "Sunset Pre-Wedding Story", category: "Pre-Wedding Photography" },
-        { id: "3", src: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=800&q=80", title: "Engagement Celebration", category: "Engagement Photography" },
-        { id: "4", src: "https://images.unsplash.com/photo-1594552072238-b8a33785b261?auto=format&fit=crop&w=800&q=80", title: "Bridal Portraiture", category: "Bridal Portraits" },
-        { id: "5", src: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&q=80", title: "Family Gathering & Joy", category: "Birthday & Family Celebrations" },
-        { id: "6", src: "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&w=800&q=80", title: "Maternity & Baby Portrait", category: "Maternity & Baby Photography" },
-        { id: "7", src: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=800&q=80", title: "Cinematic Film Stills", category: "Cinematic Videography" },
-      ];
+  const galleryItems = items
+    .map((x) => ({
+      id: x.id,
+      src: String(x.src ?? ""),
+      title: String(x.title || x.category || "Selected work"),
+      category: String(x.category || "Wedding Photography"),
+    }))
+    .filter((x) => Boolean(x.src) && !x.src.includes("unsplash.com"));
 
   const filteredItems = activeCategory === "all"
     ? galleryItems
@@ -117,13 +110,27 @@ function GalleryGrid() {
           })}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-white/20 p-12 text-center text-sm text-white/50">
-          No photos found for "{activeCategory}". Upload photos in this category from the Admin Panel to feature them here.
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="aspect-[4/3]">
+                <WireframePlaceholder
+                  aspectRatio="4/3"
+                  label={`Gallery Slot ${i + 1}`}
+                  sublabel="Upload photo in Admin Panel"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="rounded-2xl border border-dashed border-[#c7a66b]/30 bg-[#161614] p-8 text-center text-sm text-white/60">
+            Awaiting Cloudinary uploads for <span className="text-[#c7a66b] font-semibold">&ldquo;{activeCategory}&rdquo;</span>. Upload images in the Admin Gallery to replace these wireframe placeholders with your photos.
+          </div>
         </div>
       )}
     </section>
   );
 }
+
 
 function DynamicPricingSection() {
   const [plans, setPlans] = useState<PublicEntry[]>([]);
@@ -235,140 +242,68 @@ function DynamicTestimonialsSection() {
   );
 }
 
+// Default service entries used when Firebase has no services data yet
+const defaultServicesData = [
+  { id: "wedding", icon: "💍", title: "Wedding Photography", categoryKey: "Wedding", description: "Your wedding is one of life's most cherished milestones. We capture every smile, every emotion, and every unforgettable moment with a blend of creativity, elegance, and attention to detail, ensuring your memories remain timeless.", defaultImages: [] },
+  { id: "pre-wedding", icon: "❤️", title: "Pre-Wedding Photography", categoryKey: "Pre-Wedding", description: "Celebrate your journey before the big day with creative and personalized pre-wedding sessions. Whether it's a romantic outdoor location or a meaningful place that reflects your story, we create photographs that beautifully showcase your bond.", defaultImages: [] },
+  { id: "engagement", icon: "💑", title: "Engagement Photography", categoryKey: "Engagement", description: "Every proposal and engagement marks the beginning of a beautiful journey. We capture the excitement, love, and happiness of this special chapter with natural, heartfelt, and artistic photography.", defaultImages: [] },
+  { id: "bridal", icon: "👰", title: "Bridal Portraits", categoryKey: "Bridal", description: "Celebrate your elegance with stunning bridal portraits that highlight every detail—from your smile to your attire. Our goal is to create timeless portraits that you'll treasure forever.", defaultImages: [] },
+  { id: "celebrations", icon: "🎉", title: "Birthday & Family Celebrations", categoryKey: "Celebration", description: "From birthdays and anniversaries to family gatherings, we capture the laughter, joy, and unforgettable moments that make every celebration unique.", defaultImages: [] },
+  { id: "maternity", icon: "👶", title: "Maternity & Baby Photography", categoryKey: "Maternity", description: "Every new beginning deserves to be remembered. We create warm, emotional, and beautifully crafted maternity and baby portraits that preserve these precious milestones for generations.", defaultImages: [] },
+  { id: "videography", icon: "🎥", title: "Cinematic Videography", categoryKey: "Videography", description: "Transform your special moments into beautifully crafted films. Our cinematic videos capture every emotion, celebration, and unforgettable memory with stunning visuals and storytelling.", defaultImages: [] },
+];
+
 function DedicatedServicesPage() {
+  // Subscribe to Firebase services collection — same source as homepage services section
+  const [firebaseServices, setFirebaseServices] = useState<PublicEntry[]>([]);
   const [galleryItems, setGalleryItems] = useState<PublicEntry[]>([]);
   const [selectedSession, setSelectedSession] = useState<string>("");
 
   useEffect(() => {
-    const unsub = subscribeToPublicEntries("gallery", setGalleryItems);
-    return unsub;
+    const unsubServices = subscribeToPublicEntries("services", setFirebaseServices);
+    const unsubGallery = subscribeToPublicEntries("gallery", setGalleryItems);
+    return () => { unsubServices(); unsubGallery(); };
   }, []);
+
+  // Build the display list: prefer Firebase entries, fall back to hardcoded defaults
+  const servicesData = firebaseServices.length
+    ? firebaseServices.map((s) => ({
+        id: s.id,
+        icon: String(s.icon || "📸"),
+        title: String(s.title || "Photography Service"),
+        categoryKey: String(s.sessionType || s.title || ""),
+        description: String(s.body || s.description || ""),
+        defaultImages: s.src && !String(s.src).includes("unsplash.com") ? [String(s.src)] : [],
+      }))
+    : defaultServicesData;
 
   const handleBookService = (sessionType: string) => {
     setSelectedSession(sessionType);
     const bookingFormEl = document.getElementById("service-booking-form");
-    if (bookingFormEl) {
-      bookingFormEl.scrollIntoView({ behavior: "smooth" });
-    }
+    if (bookingFormEl) bookingFormEl.scrollIntoView({ behavior: "smooth" });
   };
-
-  const servicesData = [
-    {
-      id: "wedding",
-      icon: "💍",
-      title: "Wedding Photography",
-      categoryKey: "Wedding",
-      description:
-        "Your wedding is one of life's most cherished milestones. We capture every smile, every emotion, and every unforgettable moment with a blend of creativity, elegance, and attention to detail, ensuring your memories remain timeless.",
-      defaultImages: [
-        "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=800&q=80",
-      ],
-    },
-    {
-      id: "pre-wedding",
-      icon: "❤️",
-      title: "Pre-Wedding Photography",
-      categoryKey: "Pre-Wedding",
-      description:
-        "Celebrate your journey before the big day with creative and personalized pre-wedding sessions. Whether it's a romantic outdoor location or a meaningful place that reflects your story, we create photographs that beautifully showcase your bond.",
-      defaultImages: [
-        "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=800&q=80",
-      ],
-    },
-    {
-      id: "engagement",
-      icon: "💑",
-      title: "Engagement Photography",
-      categoryKey: "Engagement",
-      description:
-        "Every proposal and engagement marks the beginning of a beautiful journey. We capture the excitement, love, and happiness of this special chapter with natural, heartfelt, and artistic photography.",
-      defaultImages: [
-        "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80",
-      ],
-    },
-    {
-      id: "bridal",
-      icon: "👰",
-      title: "Bridal Portraits",
-      categoryKey: "Bridal",
-      description:
-        "Celebrate your elegance with stunning bridal portraits that highlight every detail—from your smile to your attire. Our goal is to create timeless portraits that you'll treasure forever.",
-      defaultImages: [
-        "https://images.unsplash.com/photo-1594552072238-b8a33785b261?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80",
-      ],
-    },
-    {
-      id: "celebrations",
-      icon: "🎉",
-      title: "Birthday & Family Celebrations",
-      categoryKey: "Celebration",
-      description:
-        "From birthdays and anniversaries to family gatherings, we capture the laughter, joy, and unforgettable moments that make every celebration unique.",
-      defaultImages: [
-        "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80",
-      ],
-    },
-    {
-      id: "maternity",
-      icon: "👶",
-      title: "Maternity & Baby Photography",
-      categoryKey: "Maternity",
-      description:
-        "Every new beginning deserves to be remembered. We create warm, emotional, and beautifully crafted maternity and baby portraits that preserve these precious milestones for generations.",
-      defaultImages: [
-        "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&q=80",
-      ],
-    },
-    {
-      id: "videography",
-      icon: "🎥",
-      title: "Cinematic Videography",
-      categoryKey: "Videography",
-      description:
-        "Transform your special moments into beautifully crafted films. Our cinematic videos capture every emotion, celebration, and unforgettable memory with stunning visuals and storytelling.",
-      defaultImages: [
-        "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=800&q=80",
-      ],
-    },
-  ];
 
   return (
     <section className="mx-auto max-w-[1480px] px-5 py-10 md:px-10 space-y-16">
       {servicesData.map((service, index) => {
-        const serviceCategoryPhotos = galleryItems
-          .filter(
-            (item) =>
-              item.src &&
-              String(item.category || item.title || "")
-                .toLowerCase()
-                .includes(service.categoryKey.toLowerCase())
-          )
+        // Show gallery photos matching this service's category, fall back to service's own image
+        const categoryPhotos = galleryItems
+          .filter((item) => item.src && !String(item.src).includes("unsplash.com") && String(item.category || item.title || "").toLowerCase().includes(service.categoryKey.toLowerCase()))
           .map((item) => String(item.src));
-
-        const displayPhotos = serviceCategoryPhotos.length ? serviceCategoryPhotos.slice(0, 3) : service.defaultImages;
+        const displayPhotos = categoryPhotos.length
+          ? categoryPhotos.slice(0, 3)
+          : service.defaultImages;
 
         return (
-          <div
-            key={service.id}
-            className="rounded-2xl border border-white/15 bg-[#161614] p-6 md:p-10 space-y-8 shadow-xl"
-          >
+          <div key={service.id} className="rounded-2xl border border-white/15 bg-[#161614] p-6 md:p-10 space-y-8 shadow-xl">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-[#c7a66b]/10 px-3 py-1 text-xs font-semibold text-[#c7a66b] mb-2">
-                  <span>{service.icon}</span> Service 0{index + 1}
+                  <span>{service.icon}</span> Service {String(index + 1).padStart(2, "0")}
                 </div>
                 <h2 className="text-2xl font-bold sm:text-3xl text-white">{service.title}</h2>
                 <p className="mt-2 text-sm text-white/70 max-w-3xl leading-relaxed">{service.description}</p>
               </div>
-
               <button
                 onClick={() => handleBookService(service.title)}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-[#c7a66b] px-7 py-3 text-xs font-bold text-[#10100f] hover:bg-[#d8b77c] transition shadow-lg shrink-0"
@@ -379,23 +314,32 @@ function DedicatedServicesPage() {
 
             <div>
               <p className="text-xs uppercase tracking-widest text-[#c7a66b] font-semibold mb-4">Sample Showcase Images</p>
-              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                {displayPhotos.map((src, imgIdx) => (
-                  <figure key={imgIdx} className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#10100f]/50">
-                    <Image
-                      src={src}
-                      alt={`${service.title} sample ${imgIdx + 1}`}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover transition duration-300 hover:scale-105"
-                    />
-                  </figure>
-                ))}
-              </div>
+              {displayPhotos.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                  {displayPhotos.map((src, imgIdx) => (
+                    <figure key={imgIdx} className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#10100f]/50">
+                      <Image src={src} alt={`${service.title} sample ${imgIdx + 1}`} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-300 hover:scale-105" />
+                    </figure>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                  {Array.from({ length: 3 }).map((_, slotIdx) => (
+                    <div key={slotIdx} className="aspect-[4/3]">
+                      <WireframePlaceholder
+                        aspectRatio="4/3"
+                        label={`${service.title} Slot ${slotIdx + 1}`}
+                        sublabel="Awaiting Cloudinary Upload"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );
       })}
+
 
       {/* Embedded Booking Form */}
       <div id="service-booking-form" className="rounded-2xl border border-[#c7a66b]/30 bg-[#10100f] p-8 md:p-12 space-y-6">
@@ -411,8 +355,20 @@ function DedicatedServicesPage() {
 }
 
 export function InteriorPage({ slug }: { slug: string }) {
-  const page = pages[slug];
-  if (!page) return null;
+  const [settings, setSettings] = useState<SiteSettings>(defaultSiteSettings);
+  useEffect(() => subscribeToSiteSettings(setSettings), []);
+
+  const fallback = defaultPages[slug];
+  if (!fallback) return null;
+
+  // Prefer live Firebase pageContent, fall back to hardcoded defaults
+  const livePageContent = settings.pageContent?.[slug];
+  const page = {
+    eyebrow: livePageContent?.eyebrow || fallback.eyebrow,
+    title: livePageContent?.title || fallback.title,
+    intro: livePageContent?.intro || fallback.intro,
+    body: livePageContent?.body,
+  };
 
   const isPortfolio = slug === "portfolio" || slug === "gallery";
   const isContact = slug === "contact";
@@ -435,8 +391,25 @@ export function InteriorPage({ slug }: { slug: string }) {
         {/* Portfolio / gallery grid */}
         {isPortfolio && <GalleryGrid />}
 
-        {/* Services page */}
+        {/* Services page — reads from Firebase services collection */}
         {slug === "services" && <DedicatedServicesPage />}
+
+        {/* About page body — reads from settings.pageContent.about.body */}
+        {slug === "about" && page.body && (
+          <section className="mx-auto max-w-[900px] px-5 pb-16 md:px-10">
+            <p className="text-sm sm:text-base leading-8 text-white/65 whitespace-pre-line">{page.body}</p>
+          </section>
+        )}
+
+        {/* Awards page body — reads from settings.pageContent.awards.body */}
+        {slug === "awards" && (
+          <section className="mx-auto max-w-[900px] px-5 pb-16 md:px-10">
+            {page.body
+              ? <p className="text-sm sm:text-base leading-8 text-white/65 whitespace-pre-line">{page.body}</p>
+              : <p className="text-sm text-white/35 border border-dashed border-white/15 rounded-xl p-10 text-center">No awards content yet. Add body copy under Awards in Admin → Website Settings.</p>
+            }
+          </section>
+        )}
 
         {/* Dynamic pricing from Realtime Database */}
         {isPricing && <DynamicPricingSection />}
@@ -447,14 +420,10 @@ export function InteriorPage({ slug }: { slug: string }) {
         {/* FAQ */}
         {isFaq && (
           <section className="mx-auto max-w-[900px] px-5 py-10 md:px-10">
-            {[
-              ["How far in advance should we book?", "For weddings, we recommend reaching out 6–12 months ahead. If your date is closer, ask anyway — we may be available."],
-              ["Do you travel for celebrations?", "Yes. We work across India and welcome destination celebrations."],
-              ["When will we receive our images?", "A curated preview arrives shortly after the event, followed by your complete gallery within the timeline in your agreement."],
-            ].map(([q, a]) => (
-              <details className="group border-t border-white/15 py-6" key={q}>
-                <summary className="cursor-pointer list-none text-lg">{q}<span className="float-right text-[#c7a66b]">+</span></summary>
-                <p className="mt-4 max-w-xl text-sm leading-7 text-white/55">{a}</p>
+            {(settings.faq ?? defaultSiteSettings.faq).map(({ question, answer }) => (
+              <details className="group border-t border-white/15 py-6" key={question}>
+                <summary className="cursor-pointer list-none text-lg">{question}<span className="float-right text-[#c7a66b]">+</span></summary>
+                <p className="mt-4 max-w-xl text-sm leading-7 text-white/55">{answer}</p>
               </details>
             ))}
           </section>
@@ -473,38 +442,46 @@ export function InteriorPage({ slug }: { slug: string }) {
                 </div>
 
                 <div className="space-y-4 pt-2 border-t border-white/10 text-sm text-[#c7a66b]">
-                  <a href="tel:+917997634562" className="flex items-center gap-3 transition hover:text-white group">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] group-hover:border-[#c7a66b] shrink-0">
-                      <Phone size={16} />
-                    </span>
-                    <span className="font-medium tracking-wide break-all">+91 7997634562 (Call)</span>
-                  </a>
+                  {settings.phone && (
+                    <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="flex items-center gap-3 transition hover:text-white group">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] group-hover:border-[#c7a66b] shrink-0">
+                        <Phone size={16} />
+                      </span>
+                      <span className="font-medium tracking-wide break-all">{settings.phone} (Call)</span>
+                    </a>
+                  )}
 
-                  <a href="https://wa.me/917997634562" target="_blank" rel="noreferrer" className="flex items-center gap-3 transition hover:text-white group">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] group-hover:border-[#c7a66b] shrink-0">
-                      <MessageCircle size={16} />
-                    </span>
-                    <span className="font-medium tracking-wide break-all">+91 7997634562 (WhatsApp)</span>
-                  </a>
+                  {settings.whatsappNumber && (
+                    <a href={`https://wa.me/${settings.whatsappNumber}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 transition hover:text-white group">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] group-hover:border-[#c7a66b] shrink-0">
+                        <MessageCircle size={16} />
+                      </span>
+                      <span className="font-medium tracking-wide break-all">{settings.phone} (WhatsApp)</span>
+                    </a>
+                  )}
 
-                  <a href="mailto:satishphotography16@gmail.com" className="flex items-center gap-3 transition hover:text-white group">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] group-hover:border-[#c7a66b] shrink-0">
-                      <Mail size={16} />
-                    </span>
-                    <span className="font-medium tracking-wide break-all">satishphotography16@gmail.com</span>
-                  </a>
+                  {settings.email && (
+                    <a href={`mailto:${settings.email}`} className="flex items-center gap-3 transition hover:text-white group">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] group-hover:border-[#c7a66b] shrink-0">
+                        <Mail size={16} />
+                      </span>
+                      <span className="font-medium tracking-wide break-all">{settings.email}</span>
+                    </a>
+                  )}
 
-                  <a
-                    href="https://www.instagram.com/satish_photography1_?igsh=NXhwYmFjcGgwdXNt"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-3 transition hover:text-white group"
-                  >
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] group-hover:border-[#c7a66b] shrink-0">
-                      <Instagram size={16} />
-                    </span>
-                    <span className="font-medium tracking-wide break-all">@mr_satish_ch__</span>
-                  </a>
+                  {settings.instagramUrl && (
+                    <a
+                      href={settings.instagramUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-3 transition hover:text-white group"
+                    >
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] group-hover:border-[#c7a66b] shrink-0">
+                        <Instagram size={16} />
+                      </span>
+                      <span className="font-medium tracking-wide break-all">Instagram</span>
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -519,7 +496,7 @@ export function InteriorPage({ slug }: { slug: string }) {
         {/* Legal pages */}
         {["privacy-policy", "terms"].includes(slug) && (
           <section className="mx-auto max-w-3xl px-5 py-10 text-sm leading-8 text-white/60 md:px-10">
-            <p>By using this website or submitting an inquiry, you agree that the studio may process the information you provide to arrange and deliver the requested services. Specific project terms are supplied before booking.</p>
+            <p>{page.body || "By using this website or submitting an inquiry, you agree that the studio may process the information you provide to arrange and deliver the requested services. Specific project terms are supplied before booking."}</p>
           </section>
         )}
       </main>

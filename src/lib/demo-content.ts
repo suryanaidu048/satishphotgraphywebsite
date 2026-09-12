@@ -62,7 +62,7 @@ export const demoSections: HomepageSection[] = [
   { id: "pricing", type: "pricing", order: 4, visible: true, published: true, content: { title: "PERSONALIZED PACKAGES", subtitle: "Whether you need full-wedding day coverage or a pre-wedding shoot, our plans are designed to make your journey memorable." } },
   { id: "testimonials", type: "testimonials", order: 5, visible: true, published: true, content: { eyebrow: "In Their Words", title: "The feeling stays with them." } },
   { id: "booking", type: "booking", order: 6, visible: true, published: true, content: { eyebrow: "Get In Touch", title: "Start a conversation", subtitle: "Your story deserves to be beautifully remembered.", body: "Reach out to us about your plans, your ideas, or simply to say hello. We’re always happy to connect." } },
-  { id: "about", type: "about", order: 7, visible: true, published: true, content: { eyebrow: "Behind The Lens", title: "Real moments, artfully held.", body: "The best photographs do not ask you to perform. We make space for the day to unfold, then preserve its light, movement and tenderness with a considered editorial eye.", stat: "12+ Years", statLabel: "of human stories", image: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?auto=format&fit=crop&w=800&q=80" } }
+  { id: "about", type: "about", order: 7, visible: true, published: true, content: { eyebrow: "Behind The Lens", title: "Real moments, artfully held.", body: "The best photographs do not ask you to perform. We make space for the day to unfold, then preserve its light, movement and tenderness with a considered editorial eye.", stat: "12+ Years", statLabel: "of human stories", image: "" } }
 ];
 
 

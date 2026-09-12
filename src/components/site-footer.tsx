@@ -1,8 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { Instagram, Mail, MapPin, MessageCircle, Phone, Youtube } from "lucide-react";
+import { Instagram, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { useEffect, useState } from "react";
+import { defaultSiteSettings, subscribeToSiteSettings, type SiteSettings } from "@/services/site-settings";
 
 export function SiteFooter() {
+  const [settings, setSettings] = useState<SiteSettings>(defaultSiteSettings);
+  useEffect(() => subscribeToSiteSettings(setSettings), []);
   return (
     <footer className="border-t border-white/10 bg-[#0d0d0b] px-6 pt-14 pb-8 text-white/55 md:px-12">
       <div className="mx-auto max-w-[1480px]">
@@ -13,8 +19,8 @@ export function SiteFooter() {
           <div className="flex flex-col gap-5">
             <Link href="/" className="inline-block w-fit">
               <Image
-                src="/logo.png"
-                alt="Satish Photography"
+                src={settings.logoUrl || "/logo.png"}
+                alt={settings.studioName}
                 width={110}
                 height={110}
                 className="object-contain"
@@ -22,24 +28,28 @@ export function SiteFooter() {
             </Link>
             {/* Social icons */}
             <div className="flex items-center gap-3">
-              <a
-                href="https://www.instagram.com/satish_photography1_?igsh=NXhwYmFjcGgwdXNt"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Instagram"
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white/50 transition hover:border-[#c7a66b] hover:text-[#c7a66b]"
-              >
-                <Instagram size={14} />
-              </a>
-              <a
-                href="https://wa.me/917997634562"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="WhatsApp"
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white/50 transition hover:border-[#c7a66b] hover:text-[#c7a66b]"
-              >
-                <MessageCircle size={14} />
-              </a>
+              {settings.instagramUrl && (
+                <a
+                  href={settings.instagramUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white/50 transition hover:border-[#c7a66b] hover:text-[#c7a66b]"
+                >
+                  <Instagram size={14} />
+                </a>
+              )}
+              {settings.whatsappNumber && (
+                <a
+                  href={`https://wa.me/${settings.whatsappNumber}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="WhatsApp"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white/50 transition hover:border-[#c7a66b] hover:text-[#c7a66b]"
+                >
+                  <MessageCircle size={14} />
+                </a>
+              )}
             </div>
           </div>
 
@@ -95,20 +105,24 @@ export function SiteFooter() {
               Get In Touch
             </h4>
             <div className="flex flex-col gap-3.5 text-[13px]">
-              <a href="tel:+917997634562" className="flex items-start gap-3 transition hover:text-white">
-                <Phone size={14} className="mt-0.5 shrink-0 text-white/40" />
-                <span>+91 7997634562</span>
-              </a>
-              <a href="mailto:satishphotography16@gmail.com" className="flex items-start gap-3 transition hover:text-white">
-                <Mail size={14} className="mt-0.5 shrink-0 text-white/40" />
-                <span>satishphotography16@gmail.com</span>
-              </a>
-              <div className="flex items-start gap-3">
-                <MapPin size={14} className="mt-0.5 shrink-0 text-white/40" />
-                <span className="leading-relaxed">
-                  Hyderabad, Telangana, India
-                </span>
-              </div>
+              {settings.phone && (
+                <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="flex items-start gap-3 transition hover:text-white">
+                  <Phone size={14} className="mt-0.5 shrink-0 text-white/40" />
+                  <span>{settings.phone}</span>
+                </a>
+              )}
+              {settings.email && (
+                <a href={`mailto:${settings.email}`} className="flex items-start gap-3 transition hover:text-white">
+                  <Mail size={14} className="mt-0.5 shrink-0 text-white/40" />
+                  <span>{settings.email}</span>
+                </a>
+              )}
+              {settings.address && (
+                <div className="flex items-start gap-3">
+                  <MapPin size={14} className="mt-0.5 shrink-0 text-white/40" />
+                  <span className="leading-relaxed">{settings.address}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -119,15 +133,7 @@ export function SiteFooter() {
 
         {/* ── Bottom bar ── */}
         <p className="text-center text-[11px] text-white/30">
-          Copyright © 2026 surya. Developed With ❤️ by{" "}
-          <a
-            href="https://www.linkedin.com/in/suryatejagajula/"
-            target="_blank"
-            rel="noreferrer"
-            className="font-semibold text-[#c7a66b] transition hover:text-white"
-          >
-            Surya
-          </a>
+          {settings.copyright || `Copyright © ${new Date().getFullYear()} ${settings.studioName}. All rights reserved.`}
         </p>
       </div>
     </footer>

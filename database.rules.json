@@ -2,13 +2,14 @@
   "rules": {
     ".read": false,
     ".write": false,
-    "homepageSections": { ".read": true, ".write": "auth != null && auth.token.admin === true" },
-    "gallery": { ".read": true, ".write": "auth != null && auth.token.admin === true" },
-    "pricingPlans": { ".read": true, ".write": "auth != null && auth.token.admin === true" },
-    "testimonials": { ".read": true, ".write": "auth != null && auth.token.admin === true" },
-    "services": { ".read": true, ".write": "auth != null && auth.token.admin === true" },
-    "websiteSettings": { ".read": "auth != null && auth.token.admin === true", ".write": "auth != null && auth.token.admin === true" },
-    "analytics": { ".read": "auth != null && auth.token.admin === true", ".write": "auth != null && auth.token.admin === true" },
+    "homepageSections": { ".read": true, ".write": "auth != null" },
+    "gallery": { ".read": true, ".write": "auth != null" },
+    "pricingPlans": { ".read": true, ".write": "auth != null" },
+    "testimonials": { ".read": true, ".write": "auth != null" },
+    "services": { ".read": true, ".write": "auth != null" },
+    "websiteSettings": { ".read": true, ".write": "auth != null" },
+    "analytics": { ".read": "auth != null", ".write": "auth != null" },
+
     "bookings": {
       ".read": "auth != null && auth.token.admin === true",
       "$id": {

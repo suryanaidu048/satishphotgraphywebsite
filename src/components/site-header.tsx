@@ -4,8 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { defaultSiteSettings, subscribeToSiteSettings } from "@/services/site-settings";
 
 const links = [
   { href: "/", label: "Home" },
@@ -19,7 +20,9 @@ const links = [
 
 export function SiteHeader({ dark = true }: { dark?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [settings, setSettings] = useState(defaultSiteSettings);
   const pathname = usePathname();
+  useEffect(() => subscribeToSiteSettings(setSettings), []);
 
   return (
     <header className={cn("relative z-30 flex items-center justify-between px-5 py-6 md:px-10", dark ? "text-[#f0eee9]" : "text-[#10100f]")}>
@@ -27,7 +30,7 @@ export function SiteHeader({ dark = true }: { dark?: boolean }) {
         href="/"
         className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c7a66b]"
       >
-        <Image src="/logo.png" alt="Satish Photography" width={100} height={100} className="object-contain drop-shadow-lg" priority />
+        <Image src={settings.logoUrl} alt={settings.studioName} width={100} height={100} className="object-contain drop-shadow-lg" priority />
       </Link>
       <nav aria-label="Main navigation" className="hidden items-center gap-6 label lg:flex">
         {links.map((link) => {

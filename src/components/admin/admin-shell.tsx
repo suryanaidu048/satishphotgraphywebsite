@@ -10,11 +10,13 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { href: "/admin", label: "Homepage Control", icon: LayoutPanelTop },
+  { href: "/admin/services", label: "Services", icon: Briefcase },
   { href: "/admin/gallery", label: "Gallery Manager", icon: ImageIcon },
   { href: "/admin/pricing", label: "Pricing Collections", icon: Tag },
   { href: "/admin/testimonials", label: "Testimonials", icon: MessageSquareQuote },
   { href: "/admin/bookings", label: "Bookings", icon: Calendar },
   { href: "/admin/messages", label: "Messages", icon: Mail },
+  { href: "/admin/settings", label: "Website Settings", icon: Settings },
 ];
 
 export function AdminShell({ user, children }: { user: { email?: string | null } | User; children: React.ReactNode }) {
@@ -23,12 +25,6 @@ export function AdminShell({ user, children }: { user: { email?: string | null }
   const [open, setOpen] = useState(false);
 
   async function logout() {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("satish_admin_auth");
-      localStorage.removeItem("satish_admin_email");
-      document.cookie = "satish_admin_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      document.cookie = "satish_admin_email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    }
     if (auth) await signOut(auth).catch(() => null);
     router.replace("/admin/login");
   }

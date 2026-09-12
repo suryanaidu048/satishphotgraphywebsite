@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, Check, Star } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Check, Star, Camera } from "lucide-react";
 import { useEffect, useState } from "react";
 import { defaultTestimonials, defaultPricingPlans } from "@/lib/demo-content";
 import { SiteHeader } from "@/components/site-header";
@@ -11,22 +11,7 @@ import { subscribeToPublicEntries, type PublicEntry } from "@/services/content";
 import { subscribeToHomepageSections } from "@/services/homepage";
 import type { HomepageSection } from "@/types/content";
 import { InquiryForm } from "@/components/inquiry-form";
-
-// Hero Slideshow Fallback Images
-const heroSlides = [
-  {
-    src: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1920&q=80",
-    title: "Timeless Indian Celebrations",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1920&q=80",
-    title: "Unscripted Emotional Moments",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1920&q=80",
-    title: "Editorial Wedding Storytelling",
-  },
-];
+import { WireframePlaceholder } from "@/components/ui/wireframe-placeholder";
 
 // Detailed Default Services List matching requirements document
 const detailedServices = [
@@ -34,87 +19,91 @@ const detailedServices = [
     id: "wedding",
     icon: "💍",
     title: "Wedding Photography",
-    subtitle: "Your wedding is one of life's most cherished milestones.",
+    subtitle: "",
     description:
-      "We capture every smile, every emotion, and every unforgettable moment with a blend of creativity, elegance, and attention to detail, ensuring your memories remain timeless.",
+      "Your wedding is one of life's most cherished milestones. We capture every smile, every emotion, and every unforgettable moment with a blend of creativity, elegance, and attention to detail, ensuring your memories remain timeless.",
     buttonText: "Explore Wedding Stories →",
     link: "/gallery?category=Wedding",
     sessionType: "Wedding Photography",
-    image: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80",
+    image: "",
   },
   {
     id: "pre-wedding",
     icon: "❤️",
     title: "Pre-Wedding Photography",
-    subtitle: "Celebrate your journey before the big day.",
+    subtitle: "",
     description:
       "Celebrate your journey before the big day with creative and personalized pre-wedding sessions. Whether it's a romantic outdoor location or a meaningful place that reflects your story, we create photographs that beautifully showcase your bond.",
     buttonText: "View Pre-Wedding Gallery →",
     link: "/gallery?category=Pre-Wedding",
     sessionType: "Pre-Wedding Photography",
-    image: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=1200&q=80",
+    image: "",
   },
   {
     id: "engagement",
     icon: "💑",
     title: "Engagement Photography",
-    subtitle: "Every proposal and engagement marks the beginning of a beautiful journey.",
+    subtitle: "",
     description:
       "Every proposal and engagement marks the beginning of a beautiful journey. We capture the excitement, love, and happiness of this special chapter with natural, heartfelt, and artistic photography.",
     buttonText: "Discover Engagement Shoots →",
     link: "/gallery?category=Engagement",
     sessionType: "Engagement Photography",
-    image: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=1200&q=80",
+    image: "",
   },
   {
     id: "bridal",
     icon: "👰",
     title: "Bridal Portraits",
-    subtitle: "Celebrate your elegance with stunning bridal portraits.",
+    subtitle: "",
     description:
       "Celebrate your elegance with stunning bridal portraits that highlight every detail—from your smile to your attire. Our goal is to create timeless portraits that you'll treasure forever.",
     buttonText: "View Bridal Gallery →",
     link: "/gallery?category=Bridal",
     sessionType: "Bridal Portraits",
-    image: "https://images.unsplash.com/photo-1594552072238-b8a33785b261?auto=format&fit=crop&w=1200&q=80",
+    image: "",
   },
   {
     id: "celebrations",
     icon: "🎉",
     title: "Birthday & Family Celebrations",
-    subtitle: "From birthdays and anniversaries to family gatherings.",
+    subtitle: "",
     description:
       "From birthdays and anniversaries to family gatherings, we capture the laughter, joy, and unforgettable moments that make every celebration unique.",
     buttonText: "Explore Celebrations →",
     link: "/gallery?category=Celebration",
     sessionType: "Birthday & Family Celebrations",
-    image: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1200&q=80",
+    image: "",
   },
   {
     id: "maternity",
     icon: "👶",
     title: "Maternity & Baby Photography",
-    subtitle: "Every new beginning deserves to be remembered.",
+    subtitle: "",
     description:
       "Every new beginning deserves to be remembered. We create warm, emotional, and beautifully crafted maternity and baby portraits that preserve these precious milestones for generations.",
     buttonText: "View Baby & Maternity Gallery →",
     link: "/gallery?category=Maternity",
     sessionType: "Maternity & Baby Photography",
-    image: "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&w=1200&q=80",
+    image: "",
   },
   {
     id: "videography",
     icon: "🎥",
     title: "Cinematic Videography",
-    subtitle: "Relive your special day through film.",
+    subtitle: "",
     description:
-      "Relive your special day through high-definition cinematic films. We capture authentic sound, motion, and grand emotion in high frame rates and color grades.",
-    buttonText: "Watch Cinematic Films →",
+      "Transform your special moments into beautifully crafted films. Our cinematic videos capture every emotion, celebration, and unforgettable memory with stunning visuals and storytelling.",
+    buttonText: "Watch Our Films →",
     link: "/gallery?category=Videography",
     sessionType: "Cinematic Videography",
-    image: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=1200&q=80",
+    image: "",
   },
 ];
+
+function safeServiceLink(value: string, fallback: string) {
+  return value.startsWith("/") && !value.startsWith("//") ? value : fallback;
+}
 
 function Hero({ section }: { section?: HomepageSection }) {
   const content = (section?.content as Record<string, unknown> | undefined) ?? {};
@@ -125,8 +114,10 @@ function Hero({ section }: { section?: HomepageSection }) {
   const primaryHref = String(content.primaryHref || "#why-choose-us");
 
   const rawImages = (content.images as Array<{ src?: string; alt?: string }> | undefined) ?? [];
-  const validImages = rawImages.filter((img) => Boolean(img?.src)).map((img) => ({ src: String(img.src), title }));
-  const slides = validImages.length ? validImages : heroSlides;
+  const validImages = rawImages
+    .filter((img) => Boolean(img?.src) && !String(img?.src).includes("unsplash.com"))
+    .map((img) => ({ src: String(img.src), title }));
+  const slides = validImages;
 
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -140,28 +131,45 @@ function Hero({ section }: { section?: HomepageSection }) {
 
   return (
     <header className="relative min-h-[90vh] w-full overflow-hidden bg-[#10100f] text-white flex items-center justify-center pt-24 pb-16">
-      {/* Background Slideshow */}
+      {/* Background Slideshow or Ambient Editorial Framing Backdrop */}
       <div className="absolute inset-0 z-0">
-        {slides.map((slide, index) => (
-          <div
-            key={slide.src + index}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              index === currentSlide ? "opacity-100 scale-105" : "opacity-0 scale-100"
-            }`}
-            style={{ transitionProperty: "opacity, transform", transitionDuration: "1000ms" }}
-          >
-            <Image
-              src={slide.src}
-              alt={slide.title || title}
-              fill
-              priority={index === 0}
-              sizes="100vw"
-              className="object-cover object-center brightness-[0.40] contrast-[1.05]"
-            />
+        {slides.length > 0 ? (
+          slides.map((slide, index) => (
+            <div
+              key={slide.src + index}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                index === currentSlide ? "opacity-100 scale-105" : "opacity-0 scale-100"
+              }`}
+              style={{ transitionProperty: "opacity, transform", transitionDuration: "1000ms" }}
+            >
+              <Image
+                src={slide.src}
+                alt={slide.title || title}
+                fill
+                priority={index === 0}
+                sizes="100vw"
+                className="object-cover object-center brightness-[0.40] contrast-[1.05]"
+              />
+            </div>
+          ))
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-[#141412] via-[#10100f] to-[#10100f]">
+            {/* Elegant camera wireframe ambient backdrop */}
+            <div className="pointer-events-none absolute inset-0 opacity-15">
+              <div className="absolute inset-x-0 top-1/4 border-b border-dashed border-[#c7a66b]" />
+              <div className="absolute inset-x-0 bottom-1/4 border-b border-dashed border-[#c7a66b]" />
+              <div className="absolute inset-y-0 left-1/4 border-r border-dashed border-[#c7a66b]" />
+              <div className="absolute inset-y-0 right-1/4 border-r border-dashed border-[#c7a66b]" />
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <div className="h-64 w-64 rounded-full border border-[#c7a66b]/30" />
+                <div className="absolute inset-8 rounded-full border border-[#c7a66b]/20" />
+              </div>
+            </div>
           </div>
-        ))}
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#10100f] via-[#10100f]/40 to-transparent" />
       </div>
+
 
       {/* Hero Content Overlay */}
       <div className="relative z-10 mx-auto max-w-5xl px-5 text-center">
@@ -281,16 +289,16 @@ function Services({
   }, []);
 
   const servicesList = customServices.length
-    ? customServices.map((s) => ({
+      ? customServices.map((s) => ({
         id: s.id,
-        icon: "📸",
+        icon: String(s.icon || "📸"),
         title: String(s.title || "Photography Service"),
-        subtitle: String(s.subtitle || s.body || ""),
+        subtitle: String(s.subtitle || ""),
         description: String(s.body || s.description || ""),
-        buttonText: `Explore ${String(s.title)} →`,
-        link: `/gallery?category=${encodeURIComponent(String(s.title))}`,
-        sessionType: String(s.title),
-        image: String(s.src || "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80"),
+        buttonText: String(s.buttonText || `Explore ${String(s.title)} →`),
+        link: safeServiceLink(String(s.link || ""), `/gallery?category=${encodeURIComponent(String(s.title))}`),
+        sessionType: String(s.sessionType || s.title),
+        image: String(s.src || s.image || ""),
       }))
     : detailedServices;
 
@@ -307,51 +315,62 @@ function Services({
 
         {/* Stacked Services Cards */}
         <div className="space-y-12">
-          {servicesList.map((service, index) => (
-            <div
-              key={service.id}
-              className={`grid gap-8 rounded-2xl border border-white/10 bg-[#10100f] p-6 md:p-10 lg:grid-cols-12 items-center ${
-                index % 2 === 1 ? "lg:flex-row-reverse" : ""
-              }`}
-            >
-              {/* Image side */}
-              <div className={`relative aspect-[4/3] w-full overflow-hidden rounded-xl lg:col-span-6 ${index % 2 === 1 ? "lg:order-2" : "lg:order-1"}`}>
-                <Image
-                  src={service.image}
-                  alt={service.title}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover transition duration-500 hover:scale-105"
-                />
-              </div>
-
-              {/* Text & Actions Side */}
-              <div className={`space-y-4 lg:col-span-6 ${index % 2 === 1 ? "lg:order-1" : "lg:order-2"}`}>
-                <div className="inline-flex items-center justify-center rounded-full bg-[#c7a66b]/10 px-3.5 py-1 text-xs font-semibold text-[#c7a66b]">
-                  <span className="mr-1.5">{service.icon}</span> Service {index + 1}
+          {servicesList.map((service, index) => {
+            const hasImage = Boolean(service.image && !service.image.includes("unsplash.com"));
+            return (
+              <div
+                key={service.id}
+                className={`grid gap-8 rounded-2xl border border-white/10 bg-[#10100f] p-6 md:p-10 lg:grid-cols-12 items-center ${
+                  index % 2 === 1 ? "lg:flex-row-reverse" : ""
+                }`}
+              >
+                {/* Image side */}
+                <div className={`relative aspect-[4/3] w-full overflow-hidden rounded-xl lg:col-span-6 ${index % 2 === 1 ? "lg:order-2" : "lg:order-1"}`}>
+                  {hasImage ? (
+                    <Image
+                      src={service.image}
+                      alt={service.title}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className="object-cover transition duration-500 hover:scale-105"
+                    />
+                  ) : (
+                    <WireframePlaceholder
+                      aspectRatio="4/3"
+                      label={service.title}
+                      sublabel="Cloudinary image awaiting upload"
+                    />
+                  )}
                 </div>
-                <h3 className="text-2xl font-bold sm:text-3xl text-white">{service.title}</h3>
-                <p className="text-sm font-medium text-[#c7a66b]">{service.subtitle}</p>
-                <p className="text-sm text-white/70 leading-relaxed font-light">{service.description}</p>
 
-                <div className="pt-4 flex flex-wrap items-center gap-4">
-                  <Link
-                    href={service.link}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-2.5 text-xs font-semibold text-white hover:border-[#c7a66b] hover:text-[#c7a66b] transition"
-                  >
-                    <span>{service.buttonText}</span>
-                  </Link>
+                {/* Text & Actions Side */}
+                <div className={`space-y-4 lg:col-span-6 ${index % 2 === 1 ? "lg:order-1" : "lg:order-2"}`}>
+                  <div className="inline-flex items-center justify-center rounded-full bg-[#c7a66b]/10 px-3.5 py-1 text-xs font-semibold text-[#c7a66b]">
+                    <span className="mr-1.5">{service.icon}</span> Service {index + 1}
+                  </div>
+                  <h3 className="text-2xl font-bold sm:text-3xl text-white">{service.title}</h3>
+                  {service.subtitle && <p className="text-sm font-medium text-[#c7a66b]">{service.subtitle}</p>}
+                  <p className="text-sm text-white/70 leading-relaxed font-light">{service.description}</p>
 
-                  <button
-                    onClick={() => onBookService(service.sessionType)}
-                    className="inline-flex items-center gap-2 rounded-full bg-[#c7a66b] px-6 py-2.5 text-xs font-semibold text-[#10100f] hover:bg-[#d8b77c] transition shadow-md"
-                  >
-                    <span>Book {service.title}</span>
-                  </button>
+                  <div className="pt-4 flex flex-wrap items-center gap-4">
+                    <Link
+                      href={service.link}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-2.5 text-xs font-semibold text-white hover:border-[#c7a66b] hover:text-[#c7a66b] transition"
+                    >
+                      <span>{service.buttonText}</span>
+                    </Link>
+
+                    <button
+                      onClick={() => onBookService(service.sessionType)}
+                      className="inline-flex items-center gap-2 rounded-full bg-[#c7a66b] px-6 py-2.5 text-xs font-semibold text-[#10100f] hover:bg-[#d8b77c] transition shadow-md"
+                    >
+                      <span>Book {service.title}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -375,15 +394,8 @@ function Gallery({ section }: { section?: HomepageSection }) {
           title: String(x.title || x.category || "Selected work"),
           category: String(x.category || "Wedding Photography"),
         }))
-        .filter((x) => Boolean(x.src))
-    : [
-        { id: "1", src: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80", title: "Royal Wedding Ceremony", category: "Wedding Photography" },
-        { id: "2", src: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&q=80", title: "Sunset Pre-Wedding Story", category: "Pre-Wedding Photography" },
-        { id: "3", src: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=800&q=80", title: "Engagement Celebration", category: "Engagement Photography" },
-        { id: "4", src: "https://images.unsplash.com/photo-1594552072238-b8a33785b261?auto=format&fit=crop&w=800&q=80", title: "Bridal Portraiture", category: "Bridal Portraits" },
-        { id: "5", src: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&q=80", title: "Family Gathering & Joy", category: "Birthday & Family Celebrations" },
-        { id: "6", src: "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&w=800&q=80", title: "Maternity & Baby Portrait", category: "Maternity & Baby Photography" },
-      ];
+        .filter((x) => Boolean(x.src) && !x.src.includes("unsplash.com"))
+    : [];
 
   return (
     <section id="gallery" className="bg-[#10100f] px-5 py-20 text-white md:px-10 md:py-28 border-t border-white/10">
@@ -403,21 +415,36 @@ function Gallery({ section }: { section?: HomepageSection }) {
           </Link>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
-          {galleryItems.slice(0, 6).map((item, i) => (
-            <figure key={item.id} className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#161614] group">
-              <Image src={item.src} alt={item.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" />
-              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 text-xs font-medium text-white flex items-end justify-between">
-                <span className="font-semibold">{item.title}</span>
-                <span className="text-[10px] text-[#c7a66b] uppercase tracking-wider">{item.category}</span>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+        {galleryItems.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
+            {galleryItems.slice(0, 6).map((item) => (
+              <figure key={item.id} className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#161614] group">
+                <Image src={item.src} alt={item.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" />
+                <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 text-xs font-medium text-white flex items-end justify-between">
+                  <span className="font-semibold">{item.title}</span>
+                  <span className="text-[10px] text-[#c7a66b] uppercase tracking-wider">{item.category}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-[4/3]">
+                <WireframePlaceholder
+                  aspectRatio="4/3"
+                  label={`Gallery Slot ${i + 1}`}
+                  sublabel="Upload photo in Admin Gallery"
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
 }
+
 
 function Pricing({ section }: { section?: HomepageSection }) {
   const content = (section?.content as Record<string, unknown> | undefined) ?? {};
@@ -578,7 +605,8 @@ function About({ section }: { section?: HomepageSection }) {
   );
   const stat = String(content.stat || "12+ Years");
   const statLabel = String(content.statLabel || "of human stories");
-  const image = String(content.image || "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?auto=format&fit=crop&w=800&q=80");
+  const rawImage = String(content.image || "");
+  const hasImage = Boolean(rawImage && !rawImage.includes("unsplash.com"));
 
   return (
     <section id="about" className="bg-[#161614] px-5 py-16 text-white md:px-10 md:py-24 border-t border-white/10">
@@ -586,15 +614,24 @@ function About({ section }: { section?: HomepageSection }) {
         {/* Portrait Image Frame */}
         <div className="lg:col-span-5 flex justify-center">
           <figure className="relative aspect-[3/4] w-full max-w-sm overflow-hidden rounded-xl border border-white/15 shadow-2xl">
-            <Image
-              src={image}
-              alt="Satish Photography Studio"
-              fill
-              sizes="(max-width: 1024px) 100vw, 35vw"
-              className="object-cover"
-            />
+            {hasImage ? (
+              <Image
+                src={rawImage}
+                alt="Satish Photography Studio"
+                fill
+                sizes="(max-width: 1024px) 100vw, 35vw"
+                className="object-cover"
+              />
+            ) : (
+              <WireframePlaceholder
+                aspectRatio="3/4"
+                label="Studio Portrait"
+                sublabel="Upload portrait in Admin"
+              />
+            )}
           </figure>
         </div>
+
 
         {/* Text Content */}
         <div className="space-y-6 lg:col-span-7">

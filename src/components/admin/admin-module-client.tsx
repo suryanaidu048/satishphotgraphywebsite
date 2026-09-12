@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { ModuleManager } from "@/components/admin/module-manager";
+import { SiteSettingsManager } from "@/components/admin/site-settings-manager";
 
 const modules = ["gallery", "services", "pricing", "testimonials", "bookings", "messages", "analytics", "settings"];
 
@@ -19,7 +20,7 @@ export function AdminModuleClient({ initialModule }: { initialModule: string }) 
     <AdminGate>
       {(user) => (
         <AdminShell user={user}>
-          <ModuleManager module={module} user={user} />
+          {module === "settings" ? <SiteSettingsManager /> : <ModuleManager module={module} user={user} />}
         </AdminShell>
       )}
     </AdminGate>

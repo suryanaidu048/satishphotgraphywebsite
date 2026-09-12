@@ -11,28 +11,23 @@ export function CloudinaryUpload({ label = "Upload Image", className, onUploaded
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState("");
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setLoading(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (result && onUploaded) {
-        onUploaded({
-          url: result,
-          publicId: file.name,
-          width: 1200,
-          height: 800,
-        });
-      }
-      setLoading(false);
-    };
-    reader.onerror = () => {
-      setLoading(false);
-    };
-    reader.readAsDataURL(file);
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+    if (!cloudName || !uploadPreset) { setLoading(false); alert("Cloudinary is not configured. Paste an image URL instead, or add the Cloudinary cloud name and unsigned upload preset."); return; }
+    try {
+      const form = new FormData();
+      form.append("file", file); form.append("upload_preset", uploadPreset);
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: "POST", body: form });
+      if (!response.ok) throw new Error("Upload failed");
+      const asset = await response.json() as { secure_url: string; public_id: string; width: number; height: number };
+      onUploaded?.({ url: asset.secure_url, publicId: asset.public_id, width: asset.width, height: asset.height });
+    } catch { alert("Cloudinary upload failed. Check the cloud name, unsigned preset, and preset folder permissions."); }
+    finally { setLoading(false); }
   }
 
   function handleUrlSubmit() {
