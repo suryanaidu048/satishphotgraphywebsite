@@ -17,9 +17,13 @@ export function InquiryForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
-    setState("sending");
-    const values = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+    const rawEntries = Array.from(new FormData(form).entries());
+    const values: Record<string, string> = {};
+    for (const [k, v] of rawEntries) {
+      values[k] = typeof v === "string" ? v.trim() : String(v);
+    }
 
+    setState("sending");
     try {
       await createInquiry(kind, values);
       setState("sent");

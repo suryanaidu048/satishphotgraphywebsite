@@ -41,7 +41,7 @@ export function SiteFooter() {
               )}
               {settings.whatsappNumber && (
                 <a
-                  href={`https://wa.me/${settings.whatsappNumber}`}
+                  href={`https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, "")}`}
                   target="_blank"
                   rel="noreferrer"
                   aria-label="WhatsApp"
@@ -106,7 +106,7 @@ export function SiteFooter() {
             </h4>
             <div className="flex flex-col gap-3.5 text-[13px]">
               {settings.phone && (
-                <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="flex items-start gap-3 transition hover:text-white">
+                <a href={`tel:${settings.phone.replace(/[^0-9+]/g, "")}`} className="flex items-start gap-3 transition hover:text-white">
                   <Phone size={14} className="mt-0.5 shrink-0 text-white/40" />
                   <span>{settings.phone}</span>
                 </a>

@@ -1,16 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Phone, MessageCircle, Instagram } from "lucide-react";
 import { defaultSiteSettings, subscribeToSiteSettings } from "@/services/site-settings";
 
 export function FloatingContactBar() {
   const [settings, setSettings] = useState(defaultSiteSettings);
+  const pathname = usePathname();
 
   useEffect(() => {
     const unsub = subscribeToSiteSettings(setSettings);
     return unsub;
   }, []);
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   const phoneHref = `tel:${settings.phone.replace(/[^0-9+]/g, "")}`;
   const cleanWaNumber = settings.whatsappNumber.replace(/[^0-9]/g, "");

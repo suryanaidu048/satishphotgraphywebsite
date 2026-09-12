@@ -292,7 +292,7 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
     setButtonText(String(item.buttonText ?? ""));
     setLink(String(item.link ?? ""));
     setSessionType(String(item.sessionType ?? ""));
-    setImageUrl(String(item.src ?? ""));
+    setImageUrl(String(item.src ?? item.image ?? ""));
     setOrder(String(item.order ?? 0));
     setVisible(item.visible !== false);
   }
@@ -568,6 +568,7 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
                     <CloudinaryUpload
                       folder="services"
                       label="Upload Image"
+                      hideUrlButton={true}
                       onUploaded={(asset) => {
                         setImageUrl(asset.url);
                         setServiceImageMode("idle");

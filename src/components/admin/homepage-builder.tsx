@@ -2,7 +2,7 @@
 
 import { Eye, ImagePlus, Plus, Trash2, PencilLine } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GalleryPickerModal } from "@/components/admin/gallery-picker-modal";
 import { CloudinaryUpload } from "@/components/admin/cloudinary-upload";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,8 @@ export function HomepageBuilder() {
   const [editingTestimonialId, setEditingTestimonialId] = useState<string | null>(null);
   const [pickerTarget, setPickerTarget] = useState<{ sectionId: string; index?: number } | null>(null);
 
+  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+
   useEffect(() => {
     const unsubscribeHomepage = subscribeToHomepageSections((next) => {
       setItems(next);
@@ -42,6 +44,7 @@ export function HomepageBuilder() {
       unsubscribeHomepage();
       unsubscribePricing();
       unsubscribeTestimonials();
+      Object.values(debounceTimers.current).forEach((t) => clearTimeout(t));
     };
   }, []);
 
@@ -58,11 +61,32 @@ export function HomepageBuilder() {
   const heroImages = heroContent.images ?? [];
   const galleryImages = galleryContent.images ?? [];
 
-  async function handleServicesTextChange(field: string, value: string) {
+  function debouncedUpdateSection(id: string, field: string, value: string, noticeMsg: string) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, content: { ...(item.content as Record<string, unknown>), [field]: value } } : item
+      )
+    );
+
+    const timerKey = `${id}-${field}`;
+    if (debounceTimers.current[timerKey]) {
+      clearTimeout(debounceTimers.current[timerKey]);
+    }
+    debounceTimers.current[timerKey] = setTimeout(async () => {
+      try {
+        const currentItem = items.find((item) => item.id === id);
+        const currentContent = (currentItem?.content as Record<string, unknown> | undefined) ?? {};
+        await updateHomepageSection(id, { content: { ...currentContent, [field]: value } });
+        setNotice(noticeMsg);
+      } catch {
+        // non-blocking
+      }
+    }, 400);
+  }
+
+  function handleServicesTextChange(field: string, value: string) {
     const id = servicesSection?.id ?? "services";
-    const currentContent = (servicesSection?.content as Record<string, unknown> | undefined) ?? {};
-    await updateHomepageSection(id, { content: { ...currentContent, [field]: value } });
-    setNotice("Services section header content is live on the public page.");
+    debouncedUpdateSection(id, field, value, "Services section header content is live on the public page.");
   }
 
   async function seedHomepage() {
@@ -81,32 +105,24 @@ export function HomepageBuilder() {
     return Array.isArray(images) ? images : [];
   }
 
-  async function handleHeroTextChange(field: keyof HeroContent, value: string) {
+  function handleHeroTextChange(field: keyof HeroContent, value: string) {
     const id = heroSection?.id ?? "hero";
-    const currentContent = (heroSection?.content as Record<string, unknown> | undefined) ?? {};
-    await updateHomepageSection(id, { content: { ...currentContent, [field]: value } });
-    setNotice("Hero content is live on the public page.");
+    debouncedUpdateSection(id, field, value, "Hero content is live on the public page.");
   }
 
-  async function handleWhyTextChange(field: string, value: string) {
+  function handleWhyTextChange(field: string, value: string) {
     const id = whySection?.id ?? "whyChooseUs";
-    const currentContent = (whySection?.content as Record<string, unknown> | undefined) ?? {};
-    await updateHomepageSection(id, { content: { ...currentContent, [field]: value } });
-    setNotice("Why Choose Us content is live on the public page.");
+    debouncedUpdateSection(id, field, value, "Why Choose Us content is live on the public page.");
   }
 
-  async function handleGalleryTextChange(field: keyof GalleryContent, value: string) {
+  function handleGalleryTextChange(field: keyof GalleryContent, value: string) {
     const id = gallerySection?.id ?? "gallery";
-    const currentContent = (gallerySection?.content as Record<string, unknown> | undefined) ?? {};
-    await updateHomepageSection(id, { content: { ...currentContent, [field]: value } });
-    setNotice("Gallery content is live on the public page.");
+    debouncedUpdateSection(id, field, value, "Gallery content is live on the public page.");
   }
 
-  async function handleAboutTextChange(field: keyof AboutContent, value: string) {
+  function handleAboutTextChange(field: keyof AboutContent, value: string) {
     const id = aboutSection?.id ?? "about";
-    const currentContent = (aboutSection?.content as Record<string, unknown> | undefined) ?? {};
-    await updateHomepageSection(id, { content: { ...currentContent, [field]: value } });
-    setNotice("About section content is live on the public page.");
+    debouncedUpdateSection(id, field, value, "About section content is live on the public page.");
   }
 
   async function handleAboutImageChange(url: string) {

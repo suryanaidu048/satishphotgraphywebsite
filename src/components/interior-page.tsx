@@ -443,7 +443,7 @@ export function InteriorPage({ slug }: { slug: string }) {
 
                 <div className="space-y-4 pt-2 border-t border-white/10 text-sm text-[#c7a66b]">
                   {settings.phone && (
-                    <a href={`tel:${settings.phone.replace(/\s/g, "")}`} className="flex items-center gap-3 transition hover:text-white group">
+                    <a href={`tel:${settings.phone.replace(/[^0-9+]/g, "")}`} className="flex items-center gap-3 transition hover:text-white group">
                       <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] group-hover:border-[#c7a66b] shrink-0">
                         <Phone size={16} />
                       </span>
@@ -452,7 +452,7 @@ export function InteriorPage({ slug }: { slug: string }) {
                   )}
 
                   {settings.whatsappNumber && (
-                    <a href={`https://wa.me/${settings.whatsappNumber}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 transition hover:text-white group">
+                    <a href={`https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 transition hover:text-white group">
                       <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] group-hover:border-[#c7a66b] shrink-0">
                         <MessageCircle size={16} />
                       </span>
@@ -487,7 +487,7 @@ export function InteriorPage({ slug }: { slug: string }) {
 
               {/* Inquiry form */}
               <div className="md:col-span-7">
-                <InquiryForm kind="bookings" />
+                <InquiryForm kind="messages" />
               </div>
             </div>
           </section>

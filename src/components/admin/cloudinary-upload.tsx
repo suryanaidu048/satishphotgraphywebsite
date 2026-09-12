@@ -4,9 +4,9 @@ import { ChangeEvent, useState } from "react";
 import { Upload, Link as LinkIcon, Loader2 } from "lucide-react";
 
 type Asset = { url: string; publicId: string; width: number; height: number };
-type Props = { folder?: string; label?: string; className?: string; onUploaded?: (asset: Asset) => void };
+type Props = { folder?: string; label?: string; className?: string; hideUrlButton?: boolean; onUploaded?: (asset: Asset) => void };
 
-export function CloudinaryUpload({ label = "Upload Image", className, onUploaded }: Props) {
+export function CloudinaryUpload({ label = "Upload Image", className, hideUrlButton = false, onUploaded }: Props) {
   const [loading, setLoading] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState("");
@@ -58,15 +58,17 @@ export function CloudinaryUpload({ label = "Upload Image", className, onUploaded
               className="hidden"
             />
           </label>
-          <button
-            type="button"
-            onClick={() => setShowUrlInput(true)}
-            className="flex items-center gap-1 text-xs text-white/50 hover:text-white transition py-2 px-1"
-            title="Paste Image URL"
-          >
-            <LinkIcon size={12} />
-            <span>URL</span>
-          </button>
+          {!hideUrlButton && (
+            <button
+              type="button"
+              onClick={() => setShowUrlInput(true)}
+              className="flex items-center gap-1 text-xs text-white/50 hover:text-white transition py-2 px-1"
+              title="Paste Image URL"
+            >
+              <LinkIcon size={12} />
+              <span>URL</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="flex items-center gap-2">
