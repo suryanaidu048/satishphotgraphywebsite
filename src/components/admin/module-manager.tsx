@@ -34,12 +34,14 @@ const modules: Record<string, { collection: string; title: string; helper: strin
   bookings: {
     collection: "bookings",
     title: "Booking Inquiries",
-    helper: "New reservation requests submitted by website visitors.",
+    helper: "New reservation requests submitted by website visitors. Use the Call, WhatsApp, and Email buttons to respond directly.",
+    readOnly: true,
   },
   messages: {
     collection: "messages",
     title: "Contact Messages",
-    helper: "Inquiries and notes sent through the website contact form.",
+    helper: "Inquiries and notes sent through the website contact form. Use the Call, WhatsApp, and Email buttons to respond directly.",
+    readOnly: true,
   },
   analytics: {
     collection: "analytics",
@@ -664,6 +666,25 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
                         <Calendar size={13} />
                         {item.createdAt ? new Date(Number(item.createdAt)).toLocaleString() : "Recently received"}
                       </div>
+                      {/* Status badge + toggle */}
+                      <button
+                        onClick={async () => {
+                          if (!database) return;
+                          const nextStatus = item.status === "handled" ? "new" : "handled";
+                          try {
+                            await updateRealtimeItem(config.collection, item.id, { status: nextStatus });
+                            setNotice(`Marked as ${nextStatus}.`);
+                          } catch { setNotice("Could not update status."); }
+                        }}
+                        title="Toggle handled/new status"
+                        className={`rounded border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition ${
+                          item.status === "handled"
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                            : "border-amber-400/40 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20"
+                        }`}
+                      >
+                        {item.status === "handled" ? "✓ Handled" : "● New"}
+                      </button>
 
                       {/* Direct CTA Action Buttons */}
                       {Boolean(item.phone) && (
@@ -679,7 +700,12 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
 
                       {Boolean(item.phone) && (
                         <a
-                          href={`https://wa.me/91${String(item.phone).replace(/[^0-9]/g, "")}`}
+                          href={(() => {
+                            const digits = String(item.phone).replace(/[^0-9]/g, "");
+                            // If already has country code (10+ digits starting with 91), use as-is; else prepend 91
+                            const waNumber = digits.length >= 12 ? digits : `91${digits}`;
+                            return `https://wa.me/${waNumber}`;
+                          })()}
                           target="_blank"
                           rel="noreferrer"
                           title="Chat on WhatsApp"
@@ -707,7 +733,7 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
                     {Boolean(item.email) && (
                       <div className="flex items-center gap-2 min-w-0">
                         <Mail size={14} className="text-[#c7a66b] shrink-0" />
-                        <a href={`mailto:${item.email}`} className="hover:underline break-all [overflow-wrap:anywhere]">{String(item.email)}</a>
+                        <a href={`mailto:${item.email}?subject=Re: Your ${isBookings ? "booking inquiry" : "message"} — Satish Photography`} className="hover:underline break-all [overflow-wrap:anywhere]">{String(item.email)}</a>
                       </div>
                     )}
                     {Boolean(item.phone) && (
