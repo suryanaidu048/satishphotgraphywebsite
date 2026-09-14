@@ -12,6 +12,7 @@ import { subscribeToHomepageSections } from "@/services/homepage";
 import type { HomepageSection } from "@/types/content";
 import { InquiryForm } from "@/components/inquiry-form";
 import { WireframePlaceholder } from "@/components/ui/wireframe-placeholder";
+import { ServiceCatalogueCarousel, type CatalogueItem } from "@/components/service-catalogue-carousel";
 
 // Detailed Default Services List matching requirements document
 const detailedServices = [
@@ -266,6 +267,38 @@ function WhyChooseUs({ section }: { section?: HomepageSection }) {
   );
 }
 
+function GalleryCarouselCard({
+  item,
+}: {
+  item: { id: string; src: string; title: string; category: string; mediaType?: string };
+}) {
+  const isVideo = item.mediaType === "video" || Boolean(String(item.src).match(/\.(mp4|webm|mov)($|\?)/i));
+  return (
+    <div className="group relative h-64 w-80 sm:h-72 sm:w-96 md:h-80 md:w-[420px] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-[#161614] shadow-xl">
+      {isVideo ? (
+        <div className="relative h-full w-full bg-black flex items-center justify-center">
+          <video src={item.src} className="h-full w-full object-cover" muted loop autoPlay playsInline />
+          <div className="absolute top-3 right-3 rounded bg-black/80 px-2.5 py-1 text-[10px] font-bold uppercase text-[#c7a66b] border border-white/10">
+            Cinematic Film
+          </div>
+        </div>
+      ) : (
+        <Image
+          src={item.src}
+          alt={item.title}
+          fill
+          sizes="(max-width: 768px) 80vw, 420px"
+          className="object-cover transition duration-700 ease-out group-hover:scale-105"
+        />
+      )}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-5 flex flex-col justify-end">
+        <span className="text-[11px] uppercase tracking-widest text-[#c7a66b] font-semibold">{item.category}</span>
+        <h4 className="text-sm font-semibold text-white mt-1 truncate">{item.title}</h4>
+      </div>
+    </div>
+  );
+}
+
 function Services({
   section,
   onBookService,
@@ -282,14 +315,19 @@ function Services({
   );
 
   const [customServices, setCustomServices] = useState<PublicEntry[]>([]);
+  const [galleryEntries, setGalleryEntries] = useState<PublicEntry[]>([]);
 
   useEffect(() => {
-    const unsub = subscribeToPublicEntries("services", (entries) => setCustomServices(entries));
-    return unsub;
+    const unsubServices = subscribeToPublicEntries("services", setCustomServices);
+    const unsubGallery = subscribeToPublicEntries("gallery", setGalleryEntries);
+    return () => {
+      unsubServices();
+      unsubGallery();
+    };
   }, []);
 
   const servicesList = customServices.length
-      ? customServices.map((s) => ({
+    ? customServices.map((s) => ({
         id: s.id,
         icon: String(s.icon || "📸"),
         title: String(s.title || "Photography Service"),
@@ -313,10 +351,34 @@ function Services({
           <p className="mt-4 text-base text-white/70">{body}</p>
         </div>
 
-        {/* Stacked Services Cards */}
+        {/* Stacked Services Cards with Individual Image/Video Catalogue Carousel */}
         <div className="space-y-12">
           {servicesList.map((service, index) => {
-            const hasImage = Boolean(service.image && !service.image.includes("unsplash.com"));
+            const serviceKey = (service.sessionType || service.title || "").toLowerCase();
+            const matchingPhotos = galleryEntries
+              .filter((g) => {
+                const cat = String(g.category || "").toLowerCase();
+                const itemTitle = String(g.title || "").toLowerCase();
+                return (
+                  (cat.includes(serviceKey) || serviceKey.includes(cat) || itemTitle.includes(serviceKey)) &&
+                  Boolean(g.src) &&
+                  !String(g.src).includes("unsplash.com")
+                );
+              })
+              .map((g) => ({
+                id: g.id,
+                src: String(g.src),
+                title: String(g.title || service.title),
+                mediaType: String(g.mediaType || (String(g.src).match(/\.(mp4|webm|mov)($|\?)/i) ? "video" : "image")),
+              }));
+
+            const catalogueItems: CatalogueItem[] =
+              matchingPhotos.length > 0
+                ? matchingPhotos
+                : service.image && !service.image.includes("unsplash.com")
+                ? [{ src: service.image, title: service.title, mediaType: "image" }]
+                : [];
+
             return (
               <div
                 key={service.id}
@@ -324,21 +386,19 @@ function Services({
                   index % 2 === 1 ? "lg:flex-row-reverse" : ""
                 }`}
               >
-                {/* Image side */}
-                <div className={`relative aspect-[4/3] w-full overflow-hidden rounded-xl lg:col-span-6 ${index % 2 === 1 ? "lg:order-2" : "lg:order-1"}`}>
-                  {hasImage ? (
-                    <Image
-                      src={service.image}
-                      alt={service.title}
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 50vw"
-                      className="object-cover transition duration-500 hover:scale-105"
-                    />
+                {/* Individual Service Catalogue Carousel */}
+                <div
+                  className={`relative aspect-[4/3] w-full overflow-hidden rounded-xl lg:col-span-6 ${
+                    index % 2 === 1 ? "lg:order-2" : "lg:order-1"
+                  }`}
+                >
+                  {catalogueItems.length > 0 ? (
+                    <ServiceCatalogueCarousel items={catalogueItems} title={service.title} />
                   ) : (
                     <WireframePlaceholder
                       aspectRatio="4/3"
                       label={service.title}
-                      sublabel="Cloudinary image awaiting upload"
+                      sublabel="Upload photos/videos in Admin Gallery"
                     />
                   )}
                 </div>
@@ -379,7 +439,7 @@ function Services({
 
 function Gallery({ section }: { section?: HomepageSection }) {
   const content = (section?.content as Record<string, unknown> | undefined) ?? {};
-  const eyebrow = String(content.eyebrow || "OUR STORIES");
+  const eyebrow = String(content.eyebrow || "PORTFOLIO ARCHIVE");
   const title = String(content.title || "The moments we loved capturing.");
   const subtitle = String(content.subtitle || "From big celebrations to the little moments in between, explore our latest work.");
 
@@ -393,54 +453,82 @@ function Gallery({ section }: { section?: HomepageSection }) {
           src: String(x.src ?? ""),
           title: String(x.title || x.category || "Selected work"),
           category: String(x.category || "Wedding Photography"),
+          mediaType: String(x.mediaType || (String(x.src).match(/\.(mp4|webm|mov)($|\?)/i) ? "video" : "image")),
         }))
         .filter((x) => Boolean(x.src) && !x.src.includes("unsplash.com"))
     : [];
 
+  // Prepare tracks for continuous infinite marquee carousel
+  const trackItems = galleryItems.slice(0, 14);
+  const forwardTrack = trackItems.length > 0 ? [...trackItems, ...trackItems] : [];
+  const reverseTrack = trackItems.length > 0 ? [...trackItems].reverse().concat([...trackItems].reverse()) : [];
+
   return (
-    <section id="gallery" className="bg-[#10100f] px-5 py-20 text-white md:px-10 md:py-28 border-t border-white/10">
-      <div className="mx-auto max-w-[1440px]">
-        <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+    <section id="gallery" className="relative overflow-hidden bg-[#10100f] py-20 text-white md:py-28 border-t border-white/10">
+      <div className="mx-auto max-w-[1440px] px-5 md:px-10 mb-12">
+        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <p className="label mb-2 text-[#c7a66b] text-xs uppercase tracking-widest">{eyebrow}</p>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl uppercase text-white">{title}</h2>
             <p className="mt-2 text-sm text-white/60 max-w-xl">{subtitle}</p>
           </div>
-          <Link
-            href="/gallery"
-            className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-2.5 text-xs font-semibold text-white hover:border-[#c7a66b] hover:text-[#c7a66b] transition shrink-0"
-          >
-            <span>View Full Gallery</span>
-            <ArrowUpRight size={14} />
-          </Link>
-        </div>
-
-        {galleryItems.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
-            {galleryItems.slice(0, 6).map((item) => (
-              <figure key={item.id} className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#161614] group">
-                <Image src={item.src} alt={item.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" />
-                <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 text-xs font-medium text-white flex items-end justify-between">
-                  <span className="font-semibold">{item.title}</span>
-                  <span className="text-[10px] text-[#c7a66b] uppercase tracking-wider">{item.category}</span>
-                </figcaption>
-              </figure>
-            ))}
+          <div className="flex items-center gap-4">
+            <Link
+              href="/gallery"
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-2.5 text-xs font-semibold text-white hover:border-[#c7a66b] hover:text-[#c7a66b] transition shrink-0"
+            >
+              <span>Explore All Work</span>
+              <ArrowUpRight size={14} />
+            </Link>
           </div>
-        ) : (
+        </div>
+      </div>
+
+      {galleryItems.length > 0 ? (
+        <div className="relative w-full overflow-hidden">
+          {/* Edge Gradient Fading Masks */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 sm:w-36 bg-gradient-to-r from-[#10100f] via-[#10100f]/85 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 sm:w-36 bg-gradient-to-l from-[#10100f] via-[#10100f]/85 to-transparent" />
+
+          {/* Top Marquee Carousel Track (Forward) */}
+          <div aria-label="Selected photography carousel" className="gallery-marquee overflow-hidden py-3">
+            <div className="gallery-marquee-track">
+              <div className="gallery-marquee-group">
+                {forwardTrack.map((item, idx) => (
+                  <GalleryCarouselCard item={item} key={`fwd-${item.id}-${idx}`} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Marquee Carousel Track (Reverse) */}
+          {trackItems.length > 2 && (
+            <div aria-label="More selected photography carousel" className="gallery-marquee overflow-hidden py-3 mt-3">
+              <div className="gallery-marquee-track gallery-marquee-track-reverse">
+                <div className="gallery-marquee-group">
+                  {reverseTrack.map((item, idx) => (
+                    <GalleryCarouselCard item={item} key={`rev-${item.id}-${idx}`} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mx-auto max-w-[1440px] px-5 md:px-10">
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="aspect-[4/3]">
                 <WireframePlaceholder
                   aspectRatio="4/3"
                   label={`Gallery Slot ${i + 1}`}
-                  sublabel="Upload photo in Admin Gallery"
+                  sublabel="Upload photos/videos in Admin Gallery"
                 />
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }

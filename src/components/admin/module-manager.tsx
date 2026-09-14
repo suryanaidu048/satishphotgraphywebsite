@@ -316,15 +316,16 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
     }
   }
 
-  async function uploaded(asset: { url: string; publicId: string; width: number; height: number }) {
+  async function uploaded(asset: Asset) {
     const payload = {
       src: asset.url,
       cloudinaryPublicId: asset.publicId,
       width: asset.width,
       height: asset.height,
       title: uploadCategory,
-      alt: `${uploadCategory} photograph`,
+      alt: `${uploadCategory} ${asset.resourceType === "video" ? "film" : "photograph"}`,
       category: uploadCategory,
+      mediaType: asset.resourceType || "image",
       hidden: false,
     };
     if (database) {
@@ -332,9 +333,9 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
         const id = await createRealtimeItem("gallery", payload);
         const newItem = { id, ...payload };
         setItems((current) => [newItem, ...current.filter((i) => i.id !== id)]);
-        setNotice(`Image uploaded to ${uploadCategory} gallery.`);
+        setNotice(`${asset.resourceType === "video" ? "Video" : "Image"} uploaded to ${uploadCategory} gallery.`);
       } catch {
-        setNotice("Image uploaded, but metadata could not be saved.");
+        setNotice("Uploaded, but metadata could not be saved.");
       }
     } else {
       const stored = readStoredPublicEntries("gallery", []);
@@ -346,7 +347,7 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
       const nextItems = [newItem, ...stored.map((item, idx) => ({ ...item, order: idx + 1 }))];
       persistPublicEntries("gallery", nextItems);
       setItems(nextItems);
-      setNotice(`Image uploaded and saved locally to ${uploadCategory} gallery.`);
+      setNotice(`${asset.resourceType === "video" ? "Video" : "Image"} uploaded and saved locally to ${uploadCategory} gallery.`);
     }
   }
 
@@ -363,8 +364,9 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
         width: asset.width,
         height: asset.height,
         title: uploadCategory,
-        alt: `${uploadCategory} photograph`,
+        alt: `${uploadCategory} ${asset.resourceType === "video" ? "film" : "photograph"}`,
         category: uploadCategory,
+        mediaType: asset.resourceType || "image",
         hidden: false,
         order: i,
       };
@@ -454,6 +456,7 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
             <CloudinaryUpload
               folder="gallery"
               multiple
+              allowVideo
               onUploaded={uploaded}
               onBatchUploaded={handleBatchUploaded}
             />
@@ -821,7 +824,16 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
                 /* Standard Content Item (Gallery, Pricing, Services, Testimonials) */
                 <div className="flex items-start gap-4 min-w-0">
                   {typeof item.src === "string" && item.src && !item.src.includes("unsplash.com") ? (
-                    <img src={item.src} alt={typeof item.alt === "string" ? item.alt : ""} className="h-20 w-20 rounded object-cover border border-white/10 shrink-0" />
+                    item.mediaType === "video" || String(item.src).match(/\.(mp4|webm|mov)($|\?)/i) ? (
+                      <div className="relative h-20 w-20 rounded border border-white/10 shrink-0 overflow-hidden bg-black flex items-center justify-center">
+                        <video src={item.src} className="h-full w-full object-cover" muted playsInline />
+                        <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-[8px] font-bold text-[#c7a66b] uppercase tracking-wider">
+                          Video
+                        </span>
+                      </div>
+                    ) : (
+                      <img src={item.src} alt={typeof item.alt === "string" ? item.alt : ""} className="h-20 w-20 rounded object-cover border border-white/10 shrink-0" />
+                    )
                   ) : (
                     <div className="flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded border border-dashed border-[#c7a66b]/30 bg-[#161614] p-1 text-center text-[#c7a66b]/60">
                       <Camera size={18} className="mb-1 opacity-70" />

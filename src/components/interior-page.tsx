@@ -10,6 +10,7 @@ import { InquiryForm } from "@/components/inquiry-form";
 import { subscribeToPublicEntries, type PublicEntry } from "@/services/content";
 import { defaultTestimonials, defaultPricingPlans } from "@/lib/demo-content";
 import { defaultSiteSettings, subscribeToSiteSettings, type SiteSettings } from "@/services/site-settings";
+import { ServiceCatalogueCarousel, type CatalogueItem } from "@/components/service-catalogue-carousel";
 
 // Fallback page metadata (used when Firebase hasn't loaded yet)
 const defaultPages: Record<string, { eyebrow: string; title: string; intro: string }> = {
@@ -286,13 +287,24 @@ function DedicatedServicesPage() {
   return (
     <section className="mx-auto max-w-[1480px] px-5 py-10 md:px-10 space-y-16">
       {servicesData.map((service, index) => {
-        // Show gallery photos matching this service's category, fall back to service's own image
-        const categoryPhotos = galleryItems
+        // Show gallery photos & videos matching this service's category, fall back to service's own image
+        const categoryMedia = galleryItems
           .filter((item) => item.src && !String(item.src).includes("unsplash.com") && String(item.category || item.title || "").toLowerCase().includes(service.categoryKey.toLowerCase()))
-          .map((item) => String(item.src));
-        const displayPhotos = categoryPhotos.length
-          ? categoryPhotos.slice(0, 3)
-          : service.defaultImages;
+          .map((item) => ({
+            id: item.id,
+            src: String(item.src),
+            title: String(item.title || service.title),
+            mediaType: String(item.mediaType || (String(item.src).match(/\.(mp4|webm|mov)($|\?)/i) ? "video" : "image")),
+          }));
+
+        const catalogueItems: CatalogueItem[] =
+          categoryMedia.length > 0
+            ? categoryMedia
+            : service.defaultImages.map((src, i) => ({
+                src,
+                title: `${service.title} Sample ${i + 1}`,
+                mediaType: "image",
+              }));
 
         return (
           <div key={service.id} className="rounded-2xl border border-white/15 bg-[#161614] p-6 md:p-10 space-y-8 shadow-xl">
@@ -313,28 +325,31 @@ function DedicatedServicesPage() {
             </div>
 
             <div>
-              <p className="text-xs uppercase tracking-widest text-[#c7a66b] font-semibold mb-4">Sample Showcase Images</p>
-              {displayPhotos.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                  {displayPhotos.map((src, imgIdx) => (
-                    <figure key={imgIdx} className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#10100f]/50">
-                      <Image src={src} alt={`${service.title} sample ${imgIdx + 1}`} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-300 hover:scale-105" />
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs uppercase tracking-widest text-[#c7a66b] font-semibold">Service Showcase Catalogue</p>
+                {catalogueItems.length > 0 && (
+                  <span className="text-xs text-white/50">{catalogueItems.length} media items available</span>
+                )}
+              </div>
+              <div className="grid gap-6 md:grid-cols-12 items-center">
+                <div className="md:col-span-7">
+                  <ServiceCatalogueCarousel items={catalogueItems} title={service.title} />
+                </div>
+                <div className="md:col-span-5 grid grid-cols-2 gap-3">
+                  {catalogueItems.slice(0, 4).map((m, idx) => (
+                    <figure key={idx} className="relative aspect-[4/3] overflow-hidden rounded-lg bg-[#10100f]/50 border border-white/10">
+                      {m.mediaType === "video" ? (
+                        <div className="h-full w-full bg-black flex items-center justify-center">
+                          <video src={m.src} className="h-full w-full object-cover" muted playsInline />
+                          <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 text-[8px] text-[#c7a66b] font-bold uppercase">Film</span>
+                        </div>
+                      ) : (
+                        <Image src={m.src} alt={`${service.title} sample ${idx + 1}`} fill sizes="(max-width: 768px) 50vw, 20vw" className="object-cover transition duration-300 hover:scale-105" />
+                      )}
                     </figure>
                   ))}
                 </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                  {Array.from({ length: 3 }).map((_, slotIdx) => (
-                    <div key={slotIdx} className="aspect-[4/3]">
-                      <WireframePlaceholder
-                        aspectRatio="4/3"
-                        label={`${service.title} Slot ${slotIdx + 1}`}
-                        sublabel="Awaiting Cloudinary Upload"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              </div>
             </div>
           </div>
         );
