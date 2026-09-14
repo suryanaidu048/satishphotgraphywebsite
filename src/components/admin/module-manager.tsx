@@ -1,9 +1,9 @@
 "use client";
 
-import { Calendar, Camera, Images, Link as LinkIcon, Mail, MessageCircle, Pencil, Phone, Plus, Tag, Trash2, User as UserIcon, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Calendar, Camera, Images, Link as LinkIcon, Mail, MessageCircle, Pencil, Phone, Plus, Tag, Trash2, User as UserIcon, X } from "lucide-react";
 import type { User } from "firebase/auth";
-import { CloudinaryUpload } from "@/components/admin/cloudinary-upload";
+import { CloudinaryUpload, type Asset } from "@/components/admin/cloudinary-upload";
 import { GalleryPickerModal } from "@/components/admin/gallery-picker-modal";
 import { Button } from "@/components/ui/button";
 import { database } from "@/lib/firebase";
@@ -350,6 +350,54 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
     }
   }
 
+  async function handleBatchUploaded(assets: Asset[]) {
+    if (!assets.length) return;
+    const newItems: any[] = [];
+    const timestamp = Date.now();
+
+    for (let i = 0; i < assets.length; i++) {
+      const asset = assets[i];
+      const payload = {
+        src: asset.url,
+        cloudinaryPublicId: asset.publicId,
+        width: asset.width,
+        height: asset.height,
+        title: uploadCategory,
+        alt: `${uploadCategory} photograph`,
+        category: uploadCategory,
+        hidden: false,
+        order: i,
+      };
+
+      if (database) {
+        try {
+          const id = await createRealtimeItem("gallery", payload);
+          newItems.push({ id, ...payload });
+        } catch (err) {
+          console.error("Failed to save gallery item to database:", err);
+        }
+      } else {
+        const id = `gallery-${timestamp}-${i}`;
+        newItems.push({ id, ...payload });
+      }
+    }
+
+    if (newItems.length > 0) {
+      if (!database) {
+        const stored = readStoredPublicEntries("gallery", []);
+        const nextItems = [
+          ...newItems.map((item, idx) => ({ ...item, order: idx })),
+          ...stored.map((item, idx) => ({ ...item, order: idx + newItems.length })),
+        ];
+        persistPublicEntries("gallery", nextItems);
+        setItems(nextItems);
+      } else {
+        setItems((current) => [...newItems, ...current.filter((c) => !newItems.some((n) => n.id === c.id))]);
+      }
+      setNotice(`Successfully uploaded ${newItems.length} photos to ${uploadCategory} gallery!`);
+    }
+  }
+
   return (
     <div className="p-5 pt-20 md:p-8 lg:pt-8">
       {/* Header */}
@@ -380,8 +428,8 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
       {isGallery && (
         <section className="mt-6 border border-white/10 bg-[#161614] p-6 space-y-4">
           <div>
-            <h2 className="text-base font-medium text-[#c7a66b]">Upload New Photo</h2>
-            <p className="mt-1 text-xs text-white/50">Select a category/type for your photo and upload it to Cloudinary. It will appear in that category gallery immediately on the website.</p>
+            <h2 className="text-base font-medium text-[#c7a66b]">Upload Photos (Bulk Upload Supported)</h2>
+            <p className="mt-1 text-xs text-white/50">Select a category/type and upload single or multiple photos at once. Photos are automatically optimized for fast web display and added to your gallery.</p>
           </div>
 
           <div className="max-w-md">
@@ -403,7 +451,12 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
           </div>
 
           <div className="mt-4">
-            <CloudinaryUpload folder="gallery" onUploaded={uploaded} />
+            <CloudinaryUpload
+              folder="gallery"
+              multiple
+              onUploaded={uploaded}
+              onBatchUploaded={handleBatchUploaded}
+            />
           </div>
         </section>
       )}
