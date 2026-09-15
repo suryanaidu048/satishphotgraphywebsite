@@ -11,6 +11,7 @@ import { subscribeToPublicEntries, type PublicEntry } from "@/services/content";
 import { defaultTestimonials, defaultPricingPlans } from "@/lib/demo-content";
 import { defaultSiteSettings, subscribeToSiteSettings, type SiteSettings } from "@/services/site-settings";
 import { ServiceCatalogueCarousel, type CatalogueItem } from "@/components/service-catalogue-carousel";
+import { MediaLightbox } from "@/components/media-lightbox";
 
 // Fallback page metadata (used when Firebase hasn't loaded yet)
 const defaultPages: Record<string, { eyebrow: string; title: string; intro: string }> = {
@@ -32,7 +33,8 @@ const CATEGORY_TABS = [
   { label: "💍 Wedding", value: "Wedding" },
   { label: "❤️ Pre-Wedding", value: "Pre-Wedding" },
   { label: "💑 Engagement", value: "Engagement" },
-  { label: "👰 Bridal", value: "Bridal" },
+  { label: "👰🤵 Bride & Groom", value: "Bride & Groom" },
+  { label: "🌟 Celebrity", value: "Celebrity" },
   { label: "🎉 Celebrations", value: "Celebration" },
   { label: "👶 Maternity", value: "Maternity" },
   { label: "🎥 Videography", value: "Videography" },
@@ -44,6 +46,8 @@ import { WireframePlaceholder } from "@/components/ui/wireframe-placeholder";
 function GalleryGrid() {
   const [items, setItems] = useState<PublicEntry[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number>(0);
 
   useEffect(() => {
     const unsub = subscribeToPublicEntries("gallery", (entries) => setItems(entries));
@@ -56,6 +60,7 @@ function GalleryGrid() {
       src: String(x.src ?? ""),
       title: String(x.title || x.category || "Selected work"),
       category: String(x.category || "Wedding Photography"),
+      mediaType: String(x.mediaType || (String(x.src).match(/\.(mp4|webm|mov)($|\?)/i) ? "video" : "image")),
     }))
     .filter((x) => Boolean(x.src) && !x.src.includes("unsplash.com"));
 
@@ -65,8 +70,16 @@ function GalleryGrid() {
         const itemCat = item.category.toLowerCase();
         const itemTitle = item.title.toLowerCase();
         const target = activeCategory.toLowerCase();
+        if (target === "bride & groom" || target === "bridal") {
+          return itemCat.includes("bride") || itemCat.includes("bridal") || itemCat.includes("groom") || itemTitle.includes("bride");
+        }
         return itemCat.includes(target) || itemTitle.includes(target);
       });
+
+  const openLightboxAt = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
 
   return (
     <section className="mx-auto max-w-[1480px] px-5 py-8 md:px-10">
@@ -94,17 +107,28 @@ function GalleryGrid() {
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {filteredItems.map((item, i) => {
             const isLandscape = i % 3 === 0;
+            const isVideo = item.mediaType === "video" || Boolean(String(item.src).match(/\.(mp4|webm|mov)($|\?)/i));
             return (
               <figure
                 key={item.id}
-                className={`relative overflow-hidden rounded-xl bg-[#10100f]/10 shadow-sm transition duration-300 hover:scale-[1.02] ${
+                onClick={() => openLightboxAt(i)}
+                className={`group relative overflow-hidden rounded-xl bg-[#10100f]/10 shadow-sm transition duration-300 hover:scale-[1.02] cursor-pointer ${
                   isLandscape ? "aspect-[4/3] sm:col-span-2" : "aspect-[3/4]"
                 }`}
               >
-                <Image src={item.src} alt={item.title} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover" />
+                {isVideo ? (
+                  <div className="relative h-full w-full bg-black">
+                    <video src={item.src} className="h-full w-full object-cover" muted loop autoPlay playsInline />
+                    <div className="absolute top-3 right-3 rounded bg-black/80 px-2.5 py-1 text-[10px] font-bold uppercase text-[#c7a66b] border border-white/10">
+                      Video
+                    </div>
+                  </div>
+                ) : (
+                  <Image src={item.src} alt={item.title} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" />
+                )}
                 <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-4 text-xs font-medium text-white opacity-90 flex items-end justify-between">
-                  <span className="font-semibold">{item.title}</span>
-                  <span className="text-[10px] text-[#c7a66b] uppercase tracking-wider">{item.category}</span>
+                  <span className="font-semibold truncate mr-2">{item.title}</span>
+                  <span className="text-[10px] text-[#c7a66b] uppercase tracking-wider shrink-0">{item.category}</span>
                 </figcaption>
               </figure>
             );
@@ -128,6 +152,16 @@ function GalleryGrid() {
           </div>
         </div>
       )}
+
+      {/* Fullscreen Media Lightbox Modal */}
+      <MediaLightbox
+        isOpen={lightboxOpen}
+        items={filteredItems}
+        currentIndex={lightboxIndex}
+        onClose={() => setLightboxOpen(false)}
+        onNext={() => setLightboxIndex((prev) => (prev + 1) % filteredItems.length)}
+        onPrev={() => setLightboxIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length)}
+      />
     </section>
   );
 }
@@ -141,53 +175,58 @@ function DynamicPricingSection() {
 
   return (
     <section className="mx-auto max-w-[1480px] px-5 py-10 md:px-10">
-      <div className="rounded-2xl bg-[#e8dad3] p-8 md:p-14 text-[#10100f]">
-        <div className="mx-auto mb-14 max-w-3xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-[#10100f] sm:text-4xl md:text-5xl uppercase">
-            PERSONALIZED PACKAGES
+      <div className="border-t border-white/15 pt-12">
+        <div className="mb-14 text-center max-w-2xl mx-auto">
+          <p className="label text-[#c7a66b] text-xs uppercase tracking-widest">Investment</p>
+          <h2 className="mt-3 text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl md:text-5xl">
+            Thoughtfully shaped around your story.
           </h2>
-          <p className="mt-4 text-sm leading-relaxed text-[#10100f]/80 md:text-base">
+          <p className="mt-4 text-sm text-white/60">
             Whether you need full-wedding day coverage or a pre-wedding shoot, our plans are designed to make your journey memorable.
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-[1100px] gap-6 md:grid-cols-3 items-stretch">
+        <div className="mx-auto grid max-w-[1100px] gap-8 md:grid-cols-3 items-stretch">
           {displayPlans.map((plan, index) => {
-            const isHighlighted = Boolean(plan.highlight) || plan.title?.toLowerCase() === "premium" || index === 2;
+            const isHighlighted = Boolean(plan.highlight) || plan.title?.toLowerCase() === "premium" || index === 1;
             return (
               <article
                 key={plan.id}
-                className={`flex flex-col justify-between p-7 sm:p-9 transition-shadow duration-300 ${
+                className={`relative flex flex-col justify-between rounded-2xl p-7 sm:p-9 transition-all duration-300 ${
                   isHighlighted
-                    ? "bg-[#222222] text-white border border-[#222222] shadow-2xl"
-                    : "bg-[#e5d5ca] text-[#10100f] border-2 border-[#10100f]"
+                    ? "border-2 border-[#c7a66b] bg-gradient-to-b from-[#1c1a16] to-[#121210] text-white shadow-[0_0_35px_rgba(199,166,107,0.25)] scale-105 z-10"
+                    : "border border-white/10 bg-[#161614]/80 text-white hover:border-white/20"
                 }`}
               >
-                <div className="text-center">
-                  <h3 className="text-3xl font-semibold tracking-wide">{plan.title}</h3>
-                  <p className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">{plan.price}</p>
+                {isHighlighted && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#d8b77c] to-[#c7a66b] px-4 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[#10100f] shadow-md">
+                    Signature Choice
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-2xl font-bold uppercase tracking-wide text-white">{plan.title}</h3>
+                  <p className="mt-4 text-3xl font-extrabold tracking-tight text-[#c7a66b] sm:text-4xl">{plan.price}</p>
 
-                  <div className="mt-8 space-y-0 text-center">
-                    {(plan.features ?? []).map((feature, fIndex) => (
-                      <div key={feature}>
-                        <div className="flex items-center justify-center gap-2 py-3 text-sm font-medium">
-                          <Check size={16} className={isHighlighted ? "text-white" : "text-[#10100f]"} />
-                          <span>{feature}</span>
-                        </div>
-                        {fIndex < (plan.features ?? []).length - 1 && (
-                          <div className={`h-px w-full ${isHighlighted ? "bg-white/20" : "bg-[#10100f]"}`} />
-                        )}
+                  <div className="mt-8 space-y-3 border-t border-white/10 pt-6">
+                    {(plan.features ?? []).map((feature) => (
+                      <div key={feature} className="flex items-center gap-3 text-xs text-white/80">
+                        <Check size={15} className="text-[#c7a66b] shrink-0" />
+                        <span>{feature}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="mt-10 pt-4 text-center">
+                <div className="mt-10 pt-6 border-t border-white/10">
                   <Link
                     href="/booking"
-                    className="inline-block w-full bg-[#b38e2e] hover:bg-[#a07d24] text-white font-semibold py-3 px-4 text-sm uppercase tracking-wider transition border border-white/30"
+                    className={`block w-full text-center rounded-full py-3.5 text-xs font-bold uppercase tracking-wider transition ${
+                      isHighlighted
+                        ? "bg-[#c7a66b] text-[#10100f] hover:bg-[#d8b77c] shadow-lg"
+                        : "border border-white/20 bg-white/5 text-white hover:border-[#c7a66b] hover:text-[#c7a66b]"
+                    }`}
                   >
-                    BOOK NOW
+                    Book This Package
                   </Link>
                 </div>
               </article>
@@ -221,18 +260,36 @@ function DynamicTestimonialsSection() {
                 </span>
                 <span className="h-px w-6 bg-[#c7a66b]/40" />
               </div>
-              <h3 className="mt-4 text-xl font-medium tracking-wide text-white break-words [overflow-wrap:anywhere]">
-                {String(quote.author || "Client note")}
-              </h3>
-              {quote.role && (
-                <p className="mt-1 text-sm leading-relaxed text-white/50 break-words [overflow-wrap:anywhere]">
-                  {String(quote.role)}
-                </p>
-              )}
+              <div className="mt-4 flex items-center gap-4">
+                {(quote.avatar || quote.src || quote.image) ? (
+                  <div className="relative h-14 w-14 overflow-hidden rounded-full border border-[#c7a66b]/50 shadow-md shrink-0">
+                    <Image
+                      src={String(quote.avatar || quote.src || quote.image)}
+                      alt={String(quote.author || "Client")}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#c7a66b]/20 border border-[#c7a66b]/40 text-[#c7a66b] font-bold text-base shrink-0">
+                    {String(quote.author || "C").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-xl font-medium tracking-wide text-white break-words [overflow-wrap:anywhere]">
+                    {String(quote.author || "Client note")}
+                  </h3>
+                  {quote.role && (
+                    <p className="mt-0.5 text-xs text-white/50 break-words [overflow-wrap:anywhere]">
+                      {String(quote.role)}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="md:col-span-8 min-w-0">
-              <p className="display text-3xl leading-snug tracking-[-.02em] text-white/95 md:text-4xl lg:text-5xl break-words [overflow-wrap:anywhere]">
+              <p className="display text-2xl leading-snug tracking-[-.02em] text-white/95 md:text-3xl lg:text-4xl break-words [overflow-wrap:anywhere]">
                 "{String(quote.body)}"
               </p>
             </div>
@@ -248,7 +305,8 @@ const defaultServicesData = [
   { id: "wedding", icon: "💍", title: "Wedding Photography", categoryKey: "Wedding", description: "Your wedding is one of life's most cherished milestones. We capture every smile, every emotion, and every unforgettable moment with a blend of creativity, elegance, and attention to detail, ensuring your memories remain timeless.", defaultImages: [] },
   { id: "pre-wedding", icon: "❤️", title: "Pre-Wedding Photography", categoryKey: "Pre-Wedding", description: "Celebrate your journey before the big day with creative and personalized pre-wedding sessions. Whether it's a romantic outdoor location or a meaningful place that reflects your story, we create photographs that beautifully showcase your bond.", defaultImages: [] },
   { id: "engagement", icon: "💑", title: "Engagement Photography", categoryKey: "Engagement", description: "Every proposal and engagement marks the beginning of a beautiful journey. We capture the excitement, love, and happiness of this special chapter with natural, heartfelt, and artistic photography.", defaultImages: [] },
-  { id: "bridal", icon: "👰", title: "Bridal Portraits", categoryKey: "Bridal", description: "Celebrate your elegance with stunning bridal portraits that highlight every detail—from your smile to your attire. Our goal is to create timeless portraits that you'll treasure forever.", defaultImages: [] },
+  { id: "bridal", icon: "👰", title: "Bride & Groom Portraits", categoryKey: "Bride & Groom", description: "Celebrate your elegance with stunning bride & groom portraits that highlight every detail—from your smile to your attire. Our goal is to create timeless portraits that you'll treasure forever.", defaultImages: [] },
+  { id: "celebrity", icon: "🌟", title: "Celebrity Photography", categoryKey: "Celebrity", description: "High-profile red carpet, celebrity portraiture, press events, and VIP celebrations captured with supreme discretion, editorial lighting, and publication-ready perfection.", defaultImages: [] },
   { id: "celebrations", icon: "🎉", title: "Birthday & Family Celebrations", categoryKey: "Celebration", description: "From birthdays and anniversaries to family gatherings, we capture the laughter, joy, and unforgettable moments that make every celebration unique.", defaultImages: [] },
   { id: "maternity", icon: "👶", title: "Maternity & Baby Photography", categoryKey: "Maternity", description: "Every new beginning deserves to be remembered. We create warm, emotional, and beautifully crafted maternity and baby portraits that preserve these precious milestones for generations.", defaultImages: [] },
   { id: "videography", icon: "🎥", title: "Cinematic Videography", categoryKey: "Videography", description: "Transform your special moments into beautifully crafted films. Our cinematic videos capture every emotion, celebration, and unforgettable memory with stunning visuals and storytelling.", defaultImages: [] },

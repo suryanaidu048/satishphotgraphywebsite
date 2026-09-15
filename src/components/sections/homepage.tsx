@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, Check, Star, Camera } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Check, Star, Camera, Film, Play, Volume2, VolumeX, HelpCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { defaultTestimonials, defaultPricingPlans } from "@/lib/demo-content";
 import { SiteHeader } from "@/components/site-header";
@@ -13,6 +13,8 @@ import type { HomepageSection } from "@/types/content";
 import { InquiryForm } from "@/components/inquiry-form";
 import { WireframePlaceholder } from "@/components/ui/wireframe-placeholder";
 import { ServiceCatalogueCarousel, type CatalogueItem } from "@/components/service-catalogue-carousel";
+import { MediaLightbox } from "@/components/media-lightbox";
+import { defaultSiteSettings, subscribeToSiteSettings } from "@/services/site-settings";
 
 // Detailed Default Services List matching requirements document
 const detailedServices = [
@@ -55,13 +57,25 @@ const detailedServices = [
   {
     id: "bridal",
     icon: "👰",
-    title: "Bridal Portraits",
+    title: "Bride & Groom Portraits",
     subtitle: "",
     description:
-      "Celebrate your elegance with stunning bridal portraits that highlight every detail—from your smile to your attire. Our goal is to create timeless portraits that you'll treasure forever.",
-    buttonText: "View Bridal Gallery →",
-    link: "/gallery?category=Bridal",
-    sessionType: "Bridal Portraits",
+      "Celebrate your elegance with stunning bride & groom portraits that highlight every detail—from your smile to your attire. Our goal is to create timeless portraits that you'll treasure forever.",
+    buttonText: "View Bride & Groom Gallery →",
+    link: "/gallery?category=Bride%20%26%20Groom",
+    sessionType: "Bride & Groom Portraits",
+    image: "",
+  },
+  {
+    id: "celebrity",
+    icon: "🌟",
+    title: "Celebrity Photography",
+    subtitle: "",
+    description:
+      "High-profile red carpet, celebrity portraiture, press events, and VIP celebrations captured with supreme discretion, editorial lighting, and publication-ready perfection.",
+    buttonText: "Explore Celebrity Gallery →",
+    link: "/gallery?category=Celebrity",
+    sessionType: "Celebrity Photography",
     image: "",
   },
   {
@@ -111,8 +125,8 @@ function Hero({ section }: { section?: HomepageSection }) {
   const eyebrow = String(content.eyebrow || "Satish Photography · India");
   const title = String(content.title || "Turning Moments Into Timeless Memories");
   const subtitle = String(content.subtitle || "Wedding, portrait and celebration stories observed with an unhurried eye.");
-  const primaryCta = String(content.primaryCta || "Explore Our Work");
-  const primaryHref = String(content.primaryHref || "#why-choose-us");
+  const primaryCta = String(content.primaryCta || "Book Your Wedding Shoot");
+  const primaryHref = String(content.primaryHref || "#pricing");
 
   const rawImages = (content.images as Array<{ src?: string; alt?: string }> | undefined) ?? [];
   const validImages = rawImages
@@ -269,12 +283,17 @@ function WhyChooseUs({ section }: { section?: HomepageSection }) {
 
 function GalleryCarouselCard({
   item,
+  onClick,
 }: {
   item: { id: string; src: string; title: string; category: string; mediaType?: string };
+  onClick?: () => void;
 }) {
   const isVideo = item.mediaType === "video" || Boolean(String(item.src).match(/\.(mp4|webm|mov)($|\?)/i));
   return (
-    <div className="group relative h-64 w-80 sm:h-72 sm:w-96 md:h-80 md:w-[420px] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-[#161614] shadow-xl">
+    <div
+      onClick={onClick}
+      className="group relative h-64 w-80 sm:h-72 sm:w-96 md:h-80 md:w-[420px] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-[#161614] shadow-xl cursor-pointer transition duration-300 hover:border-[#c7a66b]/60"
+    >
       {isVideo ? (
         <div className="relative h-full w-full bg-black flex items-center justify-center">
           <video src={item.src} className="h-full w-full object-cover" muted loop autoPlay playsInline />
@@ -296,6 +315,143 @@ function GalleryCarouselCard({
         <h4 className="text-sm font-semibold text-white mt-1 truncate">{item.title}</h4>
       </div>
     </div>
+  );
+}
+
+function CinematicTeaserReel({ section }: { section?: HomepageSection }) {
+  const content = (section?.content as Record<string, unknown> | undefined) ?? {};
+  const eyebrow = String(content.eyebrow || "CINEMATIC TREASURES & FILMS");
+  const title = String(content.title || "MOTION, EMOTION & TIMELESS FILMS");
+  const subtitle = String(
+    content.subtitle ||
+      "Watch our automatic cinematic reels capturing the heart of wedding vows, emotional tears, and electric celebrations."
+  );
+
+  const [galleryVideos, setGalleryVideos] = useState<PublicEntry[]>([]);
+  const [isMuted, setIsMuted] = useState(true);
+  const [activeVideoIdx, setActiveVideoIdx] = useState(0);
+
+  useEffect(() => {
+    const unsub = subscribeToPublicEntries("gallery", (entries) => {
+      const vids = entries.filter((e) =>
+        e.mediaType === "video" || Boolean(String(e.src).match(/\.(mp4|webm|mov)($|\?)/i))
+      );
+      setGalleryVideos(vids);
+    });
+    return unsub;
+  }, []);
+
+  const videoList = galleryVideos.length > 0
+    ? galleryVideos
+    : [
+        {
+          id: "default-teaser",
+          title: "Cinematic Wedding Story",
+          src: "https://assets.mixkit.co/videos/preview/mixkit-romantic-wedding-couple-walking-in-a-forest-41126-large.mp4",
+          category: "Cinematic Film",
+        },
+      ];
+
+  const currentVideo = videoList[activeVideoIdx] || videoList[0];
+
+  return (
+    <section id="teaser-videos" className="relative overflow-hidden bg-[#0c0c0b] px-5 py-20 text-white md:px-10 md:py-28 border-t border-white/10">
+      <div className="mx-auto max-w-[1440px]">
+        {/* Section Header */}
+        <div className="mb-12 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 px-3.5 py-1 text-xs font-semibold text-[#c7a66b] mb-3">
+              <Film size={14} />
+              <span>{eyebrow}</span>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl uppercase text-white leading-tight">
+              {title}
+            </h2>
+            <p className="mt-2 text-sm text-white/60 max-w-2xl">
+              {subtitle}
+            </p>
+          </div>
+          <Link
+            href="/gallery?category=Videography"
+            className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-2.5 text-xs font-semibold text-white hover:border-[#c7a66b] hover:text-[#c7a66b] transition shrink-0"
+          >
+            <span>View All Films</span>
+            <ArrowUpRight size={14} />
+          </Link>
+        </div>
+
+        {/* Video Player Display Container */}
+        <div className="relative aspect-[16/9] w-full max-w-5xl mx-auto overflow-hidden rounded-3xl border border-white/20 bg-[#121210] shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+          <video
+            key={currentVideo.src}
+            src={currentVideo.src}
+            autoPlay
+            loop
+            muted={isMuted}
+            playsInline
+            className="h-full w-full object-cover"
+          />
+
+          {/* Editorial Overlay Gradients */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30" />
+
+          {/* Top Bar with Badge */}
+          <div className="absolute top-4 sm:top-6 left-4 sm:left-6 z-20 flex items-center gap-2">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-red-500 animate-ping" />
+            <span className="rounded-md bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#c7a66b] border border-white/10">
+              {String(currentVideo.category || "Treasure Film")}
+            </span>
+          </div>
+
+          {/* Video Controls Toggle */}
+          <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex items-center gap-2">
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              aria-label={isMuted ? "Unmute video" : "Mute video"}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white hover:bg-[#c7a66b] hover:text-[#10100f] transition"
+            >
+              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </button>
+          </div>
+
+          {/* Bottom Title & Book CTA */}
+          <div className="absolute bottom-4 sm:bottom-6 inset-x-4 sm:inset-x-8 z-20 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-[#c7a66b]">Cinematic Reel</p>
+              <h3 className="text-lg sm:text-2xl font-bold text-white mt-1 drop-shadow-md">
+                {String(currentVideo.title || "Cinematic Wedding Story")}
+              </h3>
+            </div>
+            <Link
+              href="#booking"
+              className="rounded-full bg-[#c7a66b] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-[#10100f] hover:bg-[#d8b77c] transition shadow-lg shrink-0 text-center"
+            >
+              Book Cinematic Teaser
+            </Link>
+          </div>
+        </div>
+
+        {/* Video Selector Thumbnails if more than 1 video */}
+        {videoList.length > 1 && (
+          <div className="mt-6 flex justify-center gap-3 overflow-x-auto py-2">
+            {videoList.map((vid, idx) => (
+              <button
+                key={vid.id || idx}
+                onClick={() => setActiveVideoIdx(idx)}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
+                  idx === activeVideoIdx
+                    ? "bg-[#c7a66b] text-[#10100f] shadow-md"
+                    : "border border-white/20 bg-white/5 text-white/70 hover:border-white hover:text-white"
+                }`}
+              >
+                <Play size={12} className={idx === activeVideoIdx ? "fill-[#10100f]" : "fill-white/70"} />
+                <span>{String(vid.title || `Reel ${idx + 1}`)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -444,6 +600,9 @@ function Gallery({ section }: { section?: HomepageSection }) {
   const subtitle = String(content.subtitle || "From big celebrations to the little moments in between, explore our latest work.");
 
   const [items, setItems] = useState<PublicEntry[]>([]);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
   useEffect(() => subscribeToPublicEntries("gallery", setItems), []);
 
   const galleryItems = items.length
@@ -457,6 +616,11 @@ function Gallery({ section }: { section?: HomepageSection }) {
         }))
         .filter((x) => Boolean(x.src) && !x.src.includes("unsplash.com"))
     : [];
+
+  const openLightboxAt = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
 
   // Prepare tracks for continuous infinite marquee carousel
   const trackItems = galleryItems.slice(0, 14);
@@ -495,7 +659,11 @@ function Gallery({ section }: { section?: HomepageSection }) {
             <div className="gallery-marquee-track">
               <div className="gallery-marquee-group">
                 {forwardTrack.map((item, idx) => (
-                  <GalleryCarouselCard item={item} key={`fwd-${item.id}-${idx}`} />
+                  <GalleryCarouselCard
+                    item={item}
+                    key={`fwd-${item.id}-${idx}`}
+                    onClick={() => openLightboxAt(idx % galleryItems.length)}
+                  />
                 ))}
               </div>
             </div>
@@ -507,7 +675,14 @@ function Gallery({ section }: { section?: HomepageSection }) {
               <div className="gallery-marquee-track gallery-marquee-track-reverse">
                 <div className="gallery-marquee-group">
                   {reverseTrack.map((item, idx) => (
-                    <GalleryCarouselCard item={item} key={`rev-${item.id}-${idx}`} />
+                    <GalleryCarouselCard
+                      item={item}
+                      key={`rev-${item.id}-${idx}`}
+                      onClick={() => {
+                        const originalIdx = galleryItems.findIndex((g) => g.id === item.id);
+                        openLightboxAt(originalIdx >= 0 ? originalIdx : 0);
+                      }}
+                    />
                   ))}
                 </div>
               </div>
@@ -529,6 +704,16 @@ function Gallery({ section }: { section?: HomepageSection }) {
           </div>
         </div>
       )}
+
+      {/* Global Media Lightbox Modal */}
+      <MediaLightbox
+        isOpen={lightboxOpen}
+        items={galleryItems}
+        currentIndex={lightboxIndex}
+        onClose={() => setLightboxOpen(false)}
+        onNext={() => setLightboxIndex((prev) => (prev + 1) % galleryItems.length)}
+        onPrev={() => setLightboxIndex((prev) => (prev - 1 + galleryItems.length) % galleryItems.length)}
+      />
     </section>
   );
 }
@@ -556,28 +741,28 @@ function Pricing({ section }: { section?: HomepageSection }) {
           <p className="mt-3 text-sm text-white/60">{subtitle}</p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-3">
-          {displayPlans.map((plan) => {
-            const isHighlight = Boolean(plan.highlight);
+        <div className="grid gap-8 md:grid-cols-3 items-stretch">
+          {displayPlans.map((plan, index) => {
+            const isHighlight = Boolean(plan.highlight) || plan.title?.toLowerCase() === "premium" || index === 1;
             const planTitle = String(plan.title ?? "Package");
             const planPrice = String(plan.price ?? "");
             return (
               <div
                 key={plan.id}
-                className={`flex flex-col justify-between rounded-2xl border p-8 transition duration-300 ${
+                className={`relative flex flex-col justify-between rounded-2xl p-8 transition-all duration-300 ${
                   isHighlight
-                    ? "border-[#c7a66b] bg-[#10100f] shadow-2xl relative scale-105"
-                    : "border-white/10 bg-[#10100f]/60 hover:border-white/20"
+                    ? "border-2 border-[#c7a66b] bg-gradient-to-b from-[#1c1a16] to-[#121210] shadow-[0_0_40px_rgba(199,166,107,0.3)] scale-105 z-10"
+                    : "border border-white/10 bg-[#10100f]/70 hover:border-white/20"
                 }`}
               >
                 {isHighlight && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-[#c7a66b] px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-[#10100f]">
-                    Most Popular
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#d8b77c] to-[#c7a66b] px-4 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[#10100f] shadow-lg">
+                    Most Popular & Recommended
                   </div>
                 )}
                 <div>
                   <h3 className="text-xl font-bold text-white uppercase tracking-wide">{planTitle}</h3>
-                  <div className="mt-4 text-3xl font-extrabold text-[#c7a66b]">{planPrice}</div>
+                  <div className="mt-4 text-3xl sm:text-4xl font-extrabold text-[#c7a66b]">{planPrice}</div>
 
                   <div className="mt-6 space-y-3 border-t border-white/10 pt-6">
                     {Array.isArray(plan.features) &&
@@ -590,21 +775,21 @@ function Pricing({ section }: { section?: HomepageSection }) {
                   </div>
                 </div>
 
-              <div className="mt-8 pt-6 border-t border-white/10">
-                <Link
-                  href="#booking"
-                  className={`block w-full text-center rounded-full py-3 text-xs font-bold uppercase tracking-wider transition ${
-                    isHighlight
-                      ? "bg-[#c7a66b] text-[#10100f] hover:bg-[#d8b77c]"
-                      : "border border-white/20 bg-white/5 text-white hover:border-[#c7a66b] hover:text-[#c7a66b]"
-                  }`}
-                >
-                  Book Package
-                </Link>
+                <div className="mt-8 pt-6 border-t border-white/10">
+                  <Link
+                    href="#booking"
+                    className={`block w-full text-center rounded-full py-3.5 text-xs font-bold uppercase tracking-wider transition ${
+                      isHighlight
+                        ? "bg-[#c7a66b] text-[#10100f] hover:bg-[#d8b77c] shadow-lg"
+                        : "border border-white/20 bg-white/5 text-white hover:border-[#c7a66b] hover:text-[#c7a66b]"
+                    }`}
+                  >
+                    Book This Package
+                  </Link>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -642,12 +827,107 @@ function Testimonials({ section }: { section?: HomepageSection }) {
                 </div>
                 <p className="text-sm text-white/80 leading-relaxed font-light">"{item.body}"</p>
               </div>
-              <div className="mt-6 pt-4 border-t border-white/10">
-                <p className="text-sm font-bold text-white">{item.author}</p>
-                <p className="text-xs text-[#c7a66b] mt-0.5">{item.role}</p>
+              <div className="mt-6 pt-4 border-t border-white/10 flex items-center gap-3.5">
+                {(item.avatar || item.src || item.image) ? (
+                  <div className="relative h-11 w-11 overflow-hidden rounded-full border border-[#c7a66b]/50 shadow-md shrink-0">
+                    <Image
+                      src={String(item.avatar || item.src || item.image)}
+                      alt={String(item.author || "Client")}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#c7a66b]/20 border border-[#c7a66b]/40 text-[#c7a66b] font-bold text-sm shrink-0">
+                    {String(item.author || "C").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-bold text-white">{item.author}</p>
+                  <p className="text-xs text-[#c7a66b] mt-0.5">{item.role}</p>
+                </div>
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FaqSection() {
+  const [settings, setSettings] = useState(defaultSiteSettings);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  useEffect(() => {
+    const unsub = subscribeToSiteSettings(setSettings);
+    return unsub;
+  }, []);
+
+  const faqs = settings.faq && settings.faq.length > 0 ? settings.faq : defaultSiteSettings.faq;
+
+  return (
+    <section id="faq" className="bg-[#161614] px-5 py-20 text-white md:px-10 md:py-28 border-t border-white/10">
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-14 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 px-3.5 py-1 text-xs font-semibold text-[#c7a66b] mb-3">
+            <HelpCircle size={14} />
+            <span>FREQUENTLY ASKED QUESTIONS</span>
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl uppercase text-white">
+            Helpful Answers & Details
+          </h2>
+          <p className="mt-3 text-sm text-white/60">
+            Everything you need to know about our booking process, photography style, travel, and deliverable timelines.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {faqs.map((faq, index) => {
+            const isOpen = openIndex === index;
+            return (
+              <div
+                key={index}
+                className="overflow-hidden rounded-2xl border border-white/10 bg-[#10100f] transition duration-200"
+              >
+                <button
+                  onClick={() => setOpenIndex(isOpen ? null : index)}
+                  className="flex w-full items-center justify-between p-6 text-left focus:outline-none"
+                  aria-expanded={isOpen}
+                >
+                  <span className="text-base sm:text-lg font-semibold text-white pr-4">
+                    {faq.question}
+                  </span>
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border border-[#c7a66b]/40 bg-[#c7a66b]/10 text-[#c7a66b] text-lg font-bold shrink-0 transition-transform duration-200 ${
+                      isOpen ? "rotate-45" : ""
+                    }`}
+                  >
+                    +
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="border-t border-white/10 px-6 pb-6 pt-3 text-sm leading-relaxed text-white/70 animate-in fade-in duration-200">
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-12 text-center">
+          <p className="text-xs text-white/50">
+            Have a different question?{" "}
+            <a
+              href={`https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#c7a66b] font-semibold underline underline-offset-4 hover:text-[#e5cf9e]"
+            >
+              Chat directly with Satish on WhatsApp →
+            </a>
+          </p>
         </div>
       </div>
     </section>
@@ -775,10 +1055,12 @@ export function Homepage() {
       <main>
         <Hero section={getSection("hero")} />
         <WhyChooseUs section={getSection("whyChooseUs")} />
+        <CinematicTeaserReel section={getSection("cinematicFilms")} />
         <Services section={getSection("services")} onBookService={handleBookService} />
         <Gallery section={getSection("gallery")} />
         <Pricing section={getSection("pricing")} />
         <Testimonials section={getSection("testimonials")} />
+        <FaqSection />
         <BookingSection section={getSection("booking")} selectedSession={selectedSession} />
         <About section={getSection("about")} />
       </main>

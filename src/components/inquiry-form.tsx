@@ -27,6 +27,25 @@ export function InquiryForm({
     try {
       await createInquiry(kind, values);
       setState("sent");
+
+      // Format WhatsApp notification text for immediate dispatch to studio WhatsApp
+      const waText = encodeURIComponent(
+        `📸 *New ${booking ? "Booking Request" : "Website Inquiry"} - Satish Photography*\n\n` +
+        `👤 *Name:* ${values.name || "-"}\n` +
+        `📞 *Phone:* ${values.phone || "-"}\n` +
+        `✉️ *Email:* ${values.email || "-"}\n` +
+        (values.date ? `📅 *Event Date:* ${values.date}\n` : "") +
+        (values.eventType ? `🎯 *Session Type:* ${values.eventType}\n` : "") +
+        `💬 *Message:* ${values.message || "-"}\n\n` +
+        `_Submitted via satishphotography website_`
+      );
+      const waUrl = `https://api.whatsapp.com/send?phone=917997634562&text=${waText}`;
+
+      // Open WhatsApp notification automatically in new tab
+      if (typeof window !== "undefined") {
+        window.open(waUrl, "_blank");
+      }
+
       form.reset();
     } catch {
       setState("error");
@@ -98,7 +117,8 @@ export function InquiryForm({
                 <option value="Wedding Photography">💍 Wedding Photography</option>
                 <option value="Pre-Wedding Photography">❤️ Pre-Wedding Photography</option>
                 <option value="Engagement Photography">💑 Engagement Photography</option>
-                <option value="Bridal Portraits">👰 Bridal Portraits</option>
+                <option value="Bride & Groom Portraits">👰🤵 Bride & Groom Portraits</option>
+                <option value="Celebrity Photography">🌟 Celebrity Photography</option>
                 <option value="Birthday & Family Celebrations">🎉 Birthday & Family Celebrations</option>
                 <option value="Maternity & Baby Photography">👶 Maternity & Baby Photography</option>
                 <option value="Cinematic Videography">🎥 Cinematic Videography</option>
@@ -126,8 +146,15 @@ export function InquiryForm({
         <ArrowRight size={15} />
       </Button>
 
-      {state === "sent" && <p className="text-sm text-[#c7a66b]">Thank you! We will connect with you shortly.</p>}
-      {state === "error" && <p className="text-sm text-[#e7a29b]">We couldn’t send this right now. Please try again or reach out on WhatsApp/Phone.</p>}
+      {state === "sent" && (
+        <div className="mt-2 rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 p-4 text-sm text-[#25D366]">
+          <p className="font-semibold">✓ Inquiry received & stored successfully!</p>
+          <p className="mt-1 text-xs text-white/80">
+            A WhatsApp notification was prepared for Satish Photography (+91 7997634562). We will get back to you shortly.
+          </p>
+        </div>
+      )}
+      {state === "error" && <p className="text-sm text-[#e7a29b]">We couldn’t send this right now. Please try again or reach out directly on WhatsApp (+91 7997634562) or phone.</p>}
     </form>
   );
 }

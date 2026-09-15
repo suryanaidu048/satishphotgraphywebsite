@@ -76,9 +76,9 @@ const starterServices = [
     src: "", order: 2, visible: true,
   },
   {
-    icon: "👰", title: "Bridal Portraits", subtitle: "",
-    body: "Celebrate your elegance with stunning bridal portraits that highlight every detail—from your smile to your attire. Our goal is to create timeless portraits that you'll treasure forever.",
-    buttonText: "View Bridal Gallery →", link: "/gallery?category=Bridal", sessionType: "Bridal Portraits",
+    icon: "👰", title: "Bride & Groom Portraits", subtitle: "",
+    body: "Celebrate your elegance with stunning bride & groom portraits that highlight every detail—from your smile to your attire. Our goal is to create timeless portraits that you'll treasure forever.",
+    buttonText: "View Bride & Groom Gallery →", link: "/gallery?category=Bride%20%26%20Groom", sessionType: "Bride & Groom Portraits",
     src: "", order: 3, visible: true,
   },
   {
@@ -98,6 +98,12 @@ const starterServices = [
     body: "Transform your special moments into beautifully crafted films. Our cinematic videos capture every emotion, celebration, and unforgettable memory with stunning visuals and storytelling.",
     buttonText: "Watch Our Films →", link: "/gallery?category=Videography", sessionType: "Cinematic Videography",
     src: "", order: 6, visible: true,
+  },
+  {
+    icon: "🌟", title: "Celebrity Photography", subtitle: "",
+    body: "High-profile red carpet, celebrity portraiture, press events, and VIP celebrations captured with supreme discretion, editorial lighting, and publication-ready perfection.",
+    buttonText: "Explore Celebrity Gallery →", link: "/gallery?category=Celebrity", sessionType: "Celebrity Photography",
+    src: "", order: 7, visible: true,
   },
 ];
 
@@ -199,7 +205,7 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
     const payload = isPricing
       ? { title: title.trim(), body: body.trim(), price: price.trim(), features: features.split(",").map((f) => f.trim()).filter(Boolean), visible }
       : isTestimonials
-        ? { author: author.trim(), role: role.trim(), body: body.trim(), visible }
+        ? { author: author.trim(), role: role.trim(), body: body.trim(), avatar: imageUrl.trim(), src: imageUrl.trim(), visible }
         : {
             title: title.trim(),
             subtitle: subtitle.trim(),
@@ -444,7 +450,8 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
               <option value="Wedding Photography">💍 Wedding Photography</option>
               <option value="Pre-Wedding Photography">❤️ Pre-Wedding Photography</option>
               <option value="Engagement Photography">💑 Engagement Photography</option>
-              <option value="Bridal Portraits">👰 Bridal Portraits</option>
+              <option value="Bride & Groom Portraits">👰🤵 Bride & Groom Portraits</option>
+              <option value="Celebrity Photography">🌟 Celebrity Photography</option>
               <option value="Birthday & Family Celebrations">🎉 Birthday & Family Celebrations</option>
               <option value="Maternity & Baby Photography">👶 Maternity & Baby Photography</option>
               <option value="Cinematic Videography">🎥 Cinematic Videography</option>
@@ -488,7 +495,8 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
                 <option value="Wedding Photography">💍 Wedding Photography</option>
                 <option value="Pre-Wedding Photography">❤️ Pre-Wedding Photography</option>
                 <option value="Engagement Photography">💑 Engagement Photography</option>
-                <option value="Bridal Portraits">👰 Bridal Portraits</option>
+                <option value="Bride & Groom Portraits">👰🤵 Bride & Groom Portraits</option>
+                <option value="Celebrity Photography">🌟 Celebrity Photography</option>
                 <option value="Birthday & Family Celebrations">🎉 Birthday & Family Celebrations</option>
                 <option value="Maternity & Baby Photography">👶 Maternity & Baby Photography</option>
                 <option value="Cinematic Videography">🎥 Cinematic Videography</option>
@@ -558,6 +566,10 @@ export function ModuleManager({ module }: { module: string; user: { email?: stri
               <div>
                 <label className="block text-xs font-medium text-white/60 mb-1">Role / Event / Location</label>
                 <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Wedding at Udaipur" className="w-full border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1">Client Photo / Avatar URL (optional)</label>
+                <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://... photo link" className="w-full border border-white/15 bg-transparent px-3.5 py-2.5 text-sm outline-none focus:border-[#c7a66b]" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-white/60 mb-1">Testimonial Quote</label>

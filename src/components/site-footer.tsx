@@ -62,6 +62,7 @@ export function SiteFooter() {
               {[
                 { href: "/", label: "Home" },
                 { href: "/services", label: "Services" },
+                { href: "/pricing", label: "Packages & Pricing" },
                 { href: "/#about", label: "About Us" },
                 { href: "/contact", label: "Contact Us" },
               ].map(({ href, label }) => (
@@ -79,14 +80,15 @@ export function SiteFooter() {
           {/* Column 3: Other links */}
           <div className="flex flex-col gap-4">
             <h4 className="label text-[11px] font-bold tracking-[.2em] text-white uppercase">
-              Other
+              Explore & Info
             </h4>
             <div className="flex flex-col gap-3 text-[13px]">
               {[
-                { href: "/gallery", label: "Gallery" },
-                { href: "/testimonials", label: "Testimonials" },
+                { href: "/gallery", label: "Gallery Archive" },
+                { href: "/testimonials", label: "Client Testimonials" },
+                { href: "/faq", label: "Frequently Asked Questions (FAQ)" },
                 { href: "/privacy-policy", label: "Privacy Policy" },
-                { href: "/terms", label: "Term Of Service" },
+                { href: "/terms", label: "Terms Of Service" },
               ].map(({ href, label }) => (
                 <Link
                   key={href}
